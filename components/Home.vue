@@ -34,12 +34,20 @@
 
     <div v-if="tab === 'url'" class="tab-content">
       <input type="text" v-model="url" placeholder="Enter URL" />
-      <button @click="handleURLImport">Import</button>
+      <button @click="handleURLImport">Convert</button>
     </div>
 
     <div v-if="tab === 'paste'" class="tab-content">
       <textarea v-model="ndjson" rows="10"></textarea>
-      <button @click="handleNDJSONPaste">Import</button>
+      <button @click="handleNDJSONPaste">Convert</button>
+    </div>
+
+    <div class="download-container">
+      <textarea v-model="o2json" rows="20"></textarea>
+      <div class="download-buttons">
+        <button @click="copyToClipboard">Copy To Clipboard</button>
+        <button @click="downloadO2JSON">Download</button>
+      </div>
     </div>
   </div>
 </template>
@@ -54,6 +62,7 @@ export default {
     const file = ref(null);
     const url = ref("");
     const ndjson = ref("");
+    const o2json = ref("");
 
     const handleFileUpload = (event) => {
       // get first file
@@ -72,7 +81,7 @@ export default {
           lines.forEach((line) => {
             if (line) jsonArray.push(JSON.parse(line));
           });
-          convertKibanaToO2(jsonArray);
+          o2json.value = JSON.stringify(convertKibanaToO2(jsonArray), null, 2);
         } catch (error) {
           // not able to parse json
           // ie. not NDJSON
@@ -90,6 +99,34 @@ export default {
 
     const handleNDJSONPaste = () => {
       // handle NDJSON paste here, using ndjson.value
+      // Try to parse the file as NDJSON
+      let lines = ndjson.value.split("\n");
+      let jsonArray = [];
+      try {
+        lines.forEach((line) => {
+          if (line) jsonArray.push(JSON.parse(line));
+        });
+        o2json.value = JSON.stringify(convertKibanaToO2(jsonArray), null, 2);
+      } catch (error) {
+        // not able to parse json
+        // ie. not NDJSON
+        console.log("The file is not NDJSON", error);
+      }
+    };
+
+    const downloadO2JSON = () => {
+      // download o2json.value
+      // prepare json and download via a click
+      const data = "data:text/json;charset=utf-8," + o2json.value;
+      const htmlA = document.createElement("a");
+      htmlA.setAttribute("href", data);
+      const fileName = "O2 Dashboard";
+      htmlA.setAttribute("download", fileName + ".dashboard.json");
+      htmlA.click();
+    };
+
+    const copyToClipboard = () => {
+      navigator.clipboard.writeText(o2json.value);
     };
 
     return {
@@ -97,9 +134,12 @@ export default {
       file,
       url,
       ndjson,
+      o2json,
       handleFileUpload,
       handleURLImport,
       handleNDJSONPaste,
+      downloadO2JSON,
+      copyToClipboard,
     };
   },
 };
@@ -140,7 +180,7 @@ export default {
   border-radius: 5px;
 }
 
-.tab-content button {
+button {
   background: #0056b3;
   color: white;
   border: none;
@@ -206,5 +246,18 @@ body {
   background-color: #fff;
   color: #0056b3;
   border: 2px solid #0056b3;
+}
+
+.download-container {
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  margin-top: 40px;
+}
+
+.download-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
 }
 </style>

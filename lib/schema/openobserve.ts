@@ -74,7 +74,7 @@ interface AxisItem {
   alias: string;
   column: string;
   color?: string | null;
-  aggregation_function?: AggregationFunc | null;
+  aggregationFunction?: AggregationFunc | null;
   sort_by?: string | null;
   args?: AxisArg[] | null;
 }

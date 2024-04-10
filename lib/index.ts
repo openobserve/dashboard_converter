@@ -1,3 +1,3 @@
-import { convertKibanaToO2 } from "./converter";
+import { convertKibanaToO2 } from "./kibana/converter";
 
 export { convertKibanaToO2 };
