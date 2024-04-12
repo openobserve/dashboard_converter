@@ -4,6 +4,32 @@ export const generatePanelId = () => {
   return "Panel_ID" + Math.floor(Math.random() * (99999 - 10 + 1)) + 10;
 };
 
+export const getInitialDashboardData = () => {
+  return {
+    title: "",
+    // NOTE: the dashboard ID is generated at the server side,
+    // in "Create a dashboard" request handler. The server
+    // doesn't care what value we put here as long as it's
+    // a string.
+    dashboardId: "",
+    description: "",
+    variables: {
+      list: [],
+      showDynamicFilters: true,
+    },
+    role: "",
+    created: new Date().toISOString(),
+    tabs: [
+      {
+        panels: [],
+        name: "Default",
+        tabId: "default",
+      },
+    ],
+    version: 3,
+  };
+};
+
 export const getDefaultDashboardPanelData: Panel = () => ({
   id: generatePanelId(),
   type: "bar",
