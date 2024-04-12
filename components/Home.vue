@@ -95,6 +95,27 @@ export default {
 
     const handleURLImport = () => {
       // handle URL import here, using url.value
+      try {
+        fetch(url.value)
+          .then((response) => response.text()) // Get the response text
+          .then((text) => {
+            // Try to parse the file as NDJSON
+            let lines = text.split("\n");
+            let jsonArray = [];
+            lines.forEach((line) => {
+              if (line) jsonArray.push(JSON.parse(line));
+            });
+            o2json.value = JSON.stringify(
+              convertKibanaToO2(jsonArray),
+              null,
+              2
+            );
+          });
+      } catch (error) {
+        // not able to parse json
+        // ie. not NDJSON
+        console.log("error while fetching", error);
+      }
     };
 
     const handleNDJSONPaste = () => {
