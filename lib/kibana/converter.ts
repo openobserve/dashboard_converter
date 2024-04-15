@@ -55,6 +55,10 @@ const getKibanaChartType = (panelData: any) => {
     panelData?.embeddableConfig?.attributes?.visualizationType == "lnsMetric"
   ) {
     return "metric";
+  } else if (
+    panelData?.embeddableConfig?.attributes?.visualizationType == "lnsDatatable"
+  ) {
+    return "table";
   } else {
     return "bar";
   }
@@ -180,29 +184,64 @@ const setFieldsBasedOnPanelType = (
 
         // set x, y axis
         // find first layer who has type as a data
-        const kibanaColumns =
-          panel?.embeddableConfig?.attributes?.state?.datasourceStates
-            ?.indexpattern?.layers[firstDataLayer?.layerId]?.columns ?? [];
+        let kibanaColumns: any = [];
 
-        const xAccessor =
-          firstDataLayer?.xAccessor ?? firstDataLayer?.metric ?? null;
+        // there will be three types of datasourceStates
+        // formBased, indexpattern and textBased
+        // loop on each datasourceStates
+        Object.keys(
+          panel?.embeddableConfig?.attributes?.state?.datasourceStates
+        ).forEach((key) => {
+          // if columns are found
+          // then assign to kibanaColumns
+          if (
+            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+              ?.layers[firstDataLayer?.layerId]?.columns
+          ) {
+            kibanaColumns =
+              panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+                ?.layers[firstDataLayer?.layerId]?.columns ?? {};
+          }
+        });
+
+        // x axis field
+        let xAccessor = firstDataLayer?.xAccessor ?? null;
+
+        // for pie, donut and metric
+        // we need to get first metric
+        if (
+          panelData.type == "pie" ||
+          panelData.type == "donut" ||
+          panelData.type == "metric"
+        ) {
+          if (firstDataLayer.metric) {
+            xAccessor = firstDataLayer.metric;
+          } else if (firstDataLayer.metrics) {
+            // take first metric
+            xAccessor = firstDataLayer.metrics[0];
+          }
+        }
+
+        // split accessor
         const splitAccessor = firstDataLayer?.splitAccessor ?? null;
 
-        if (xAccessor) {
+        // add into x axis
+        if (kibanaColumns[xAccessor]) {
           // add into x axis
           // NOTE: for timestamp field histogram function is pending
           panelData.queries[0].fields.x.push({
-            label: kibanaColumns[xAccessor].label,
+            label: kibanaColumns[xAccessor]?.label,
             alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
             column: kibanaColumns[xAccessor].sourceField.replace(/\./g, "_"),
             sort_by: "ASC",
           });
         }
 
-        if (splitAccessor) {
+        // add splitter as a 2nd field into x axis
+        if (kibanaColumns[splitAccessor]) {
           // add into x axis as 2nd field
           panelData.queries[0].fields.x.push({
-            label: kibanaColumns[splitAccessor].label,
+            label: kibanaColumns[splitAccessor]?.label,
             alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
             column: kibanaColumns[splitAccessor].sourceField.replace(
               /\./g,
@@ -212,6 +251,8 @@ const setFieldsBasedOnPanelType = (
           });
         }
 
+        // add y axis
+        // all columns array except xAccessor and splitAccessor
         Object.keys(kibanaColumns).forEach((columnId: any) => {
           // if columnId is not equal to xAccessor or splitAccessor
           // then add it to y axis
@@ -222,7 +263,7 @@ const setFieldsBasedOnPanelType = (
             kibanaColumns[columnId].sourceField
           ) {
             panelData.queries[0].fields.y.push({
-              label: kibanaColumns[columnId].label,
+              label: kibanaColumns[columnId]?.label,
               alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
               column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
               aggregationFunction:
@@ -256,11 +297,23 @@ const setFieldsBasedOnPanelType = (
       const layerId =
         panel?.embeddableConfig?.attributes.state.visualization.layerId;
       const accessor =
-        panel?.embeddableConfig?.attributes.state.visualization.accessor;
+        panel?.embeddableConfig?.attributes.state.visualization.accessor ??
+        panel?.embeddableConfig?.attributes.state.visualization.metricAccessor;
 
-      const columnData =
-        panel?.embeddableConfig?.attributes.state.datasourceStates.indexpattern
-          .layers[layerId].columns[accessor];
+      let columnData: any = [];
+
+      Object.keys(
+        panel?.embeddableConfig?.attributes?.state?.datasourceStates
+      ).forEach((key) => {
+        if (
+          panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+            ?.layers[layerId]?.columns
+        ) {
+          columnData =
+            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+              ?.layers[layerId]?.columns[accessor] ?? {};
+        }
+      });
 
       panelData.queries[0].fields.y.push({
         label: columnData?.label,
@@ -301,17 +354,17 @@ const setFieldsBasedOnPanelType = (
 };
 
 export const convertKibanaToO2 = (kibanaJSON: any) => {
-  const O2Dashboard: O2Dashboard = getInitialDashboardData();
+  const o2Dashboard: O2Dashboard = getInitialDashboardData();
   try {
     const kibanaData = extractKibanaData(kibanaJSON);
 
     // convert dashboard
     if (kibanaData.dashboard.length > 0) {
-      O2Dashboard.title = kibanaData.dashboard[0].attributes.title;
-      O2Dashboard.description = kibanaData.dashboard[0].attributes.description;
+      o2Dashboard.title = kibanaData.dashboard[0].attributes.title;
+      o2Dashboard.description = kibanaData.dashboard[0].attributes.description;
 
       // loop on all panels
-      // and push each panel into O2Dashboard
+      // and push each panel into o2Dashboard
       kibanaData.panels.forEach((panel: any, panelIndex: number) => {
         const panelData = getDefaultDashboardPanelData();
 
@@ -356,8 +409,8 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
             // make query based on fields and stream
             panelData.queries[0].query = sqlchart(panelData, 0);
 
-            // push panel into O2Dashboard
-            O2Dashboard.tabs[0].panels.push(panelData);
+            // push panel into o2Dashboard
+            o2Dashboard.tabs[0].panels.push(panelData);
           }
         }
       });
@@ -365,6 +418,6 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
   } catch (error) {
     console.log(error);
   } finally {
-    return O2Dashboard;
+    return o2Dashboard;
   }
 };
