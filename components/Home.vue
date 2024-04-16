@@ -1,52 +1,68 @@
 <template>
-  <div class="container">
-    <div class="tab-buttons">
-      <button
-        class="tab-button"
-        :class="{ active: tab === 'file' }"
-        @click="tab = 'file'"
-      >
-        Upload a file
-      </button>
-      <button
-        class="tab-button"
-        :class="{ active: tab === 'url' }"
-        @click="tab = 'url'"
-      >
-        Input a URL
-      </button>
-      <button
-        class="tab-button"
-        :class="{ active: tab === 'paste' }"
-        @click="tab = 'paste'"
-      >
-        Paste data
-      </button>
-    </div>
+  <div class="home-container">
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button
+          class="tab-button"
+          :class="{ active: tab === 'file' }"
+          @click="tab = 'file'"
+        >
+          Upload a file
+        </button>
+        <button
+          class="tab-button"
+          :class="{ active: tab === 'url' }"
+          @click="tab = 'url'"
+        >
+          Input a URL
+        </button>
+        <button
+          class="tab-button"
+          :class="{ active: tab === 'paste' }"
+          @click="tab = 'paste'"
+        >
+          Paste data
+        </button>
+      </div>
 
-    <div v-if="tab === 'file'" class="tab-content">
-      <div class="dropzone" id="dropzone">
-        <h1>Drop a file or click to select a file</h1>
-        <input type="file" id="fileupload" @change="handleFileUpload" />
-        <label for="fileupload" class="upload-label">Choose a file</label>
+      <div v-if="tab === 'file'" class="tab-content">
+        <div class="dropzone" id="dropzone">
+          <h1>Drop a file or click to select a file</h1>
+          <input type="file" id="fileupload" @change="handleFileUpload" />
+          <label for="fileupload" class="upload-label">Choose a file</label>
+        </div>
+      </div>
+
+      <div v-if="tab === 'url'" class="tab-content">
+        <input type="text" v-model="url" placeholder="Enter URL" />
+        <button @click="handleURLImport">Convert</button>
+      </div>
+
+      <div v-if="tab === 'paste'" class="tab-content">
+        <textarea v-model="ndjson" rows="10"></textarea>
+        <button @click="handleNDJSONPaste">Convert</button>
+      </div>
+
+      <div class="download-container">
+        <textarea v-model="o2json" rows="20"></textarea>
+        <div class="download-buttons">
+          <button @click="copyToClipboard">Copy To Clipboard</button>
+          <button @click="downloadO2JSON">Download</button>
+        </div>
       </div>
     </div>
-
-    <div v-if="tab === 'url'" class="tab-content">
-      <input type="text" v-model="url" placeholder="Enter URL" />
-      <button @click="handleURLImport">Convert</button>
-    </div>
-
-    <div v-if="tab === 'paste'" class="tab-content">
-      <textarea v-model="ndjson" rows="10"></textarea>
-      <button @click="handleNDJSONPaste">Convert</button>
-    </div>
-
-    <div class="download-container">
-      <textarea v-model="o2json" rows="20"></textarea>
-      <div class="download-buttons">
-        <button @click="copyToClipboard">Copy To Clipboard</button>
-        <button @click="downloadO2JSON">Download</button>
+    <div class="warning-container">
+      <div v-if="conversionWarnings.length">
+        <h2>Warnings</h2>
+        <div v-for="warning in conversionWarnings" :key="warning">
+          <div>{{ warning }}</div>
+        </div>
+      </div>
+      <div v-if="conversionErrors.length">
+        <h2>Errors</h2>
+        <div v-for="error in conversionErrors" :key="error">
+          <div>{{ error }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -63,6 +79,8 @@ export default {
     const url = ref("");
     const ndjson = ref("");
     const o2json = ref("");
+    const conversionWarnings = ref([]);
+    const conversionErrors = ref([]);
 
     const handleFileUpload = (event) => {
       // get first file
@@ -81,11 +99,16 @@ export default {
           lines.forEach((line) => {
             if (line) jsonArray.push(JSON.parse(line));
           });
-          o2json.value = JSON.stringify(convertKibanaToO2(jsonArray), null, 2);
+          const o2ConversionRes = convertKibanaToO2(jsonArray);
+          o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+          conversionErrors.value =
+            o2ConversionRes.errorAndWarningList.errorList;
+          conversionWarnings.value =
+            o2ConversionRes.errorAndWarningList.warningList;
         } catch (error) {
           // not able to parse json
           // ie. not NDJSON
-          console.log("The file is not NDJSON", error);
+          conversionErrors.value = ["Error:" + JSON.stringify(error)];
         }
       };
 
@@ -105,16 +128,18 @@ export default {
             lines.forEach((line) => {
               if (line) jsonArray.push(JSON.parse(line));
             });
-            o2json.value = JSON.stringify(
-              convertKibanaToO2(jsonArray),
-              null,
-              2
-            );
+            const o2ConversionRes = convertKibanaToO2(jsonArray);
+            o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+            conversionErrors.value =
+              o2ConversionRes.errorAndWarningList.errorList;
+            conversionWarnings.value =
+              o2ConversionRes.errorAndWarningList.warningList;
           });
       } catch (error) {
         // not able to parse json
         // ie. not NDJSON
-        console.log("error while fetching", error);
+        // console.log("error while fetching", error);
+        conversionErrors.value = ["Error:" + JSON.stringify(error)];
       }
     };
 
@@ -127,11 +152,16 @@ export default {
         lines.forEach((line) => {
           if (line) jsonArray.push(JSON.parse(line));
         });
-        o2json.value = JSON.stringify(convertKibanaToO2(jsonArray), null, 2);
+        const o2ConversionRes = convertKibanaToO2(jsonArray);
+        o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+        conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
+        conversionWarnings.value =
+          o2ConversionRes.errorAndWarningList.warningList;
       } catch (error) {
         // not able to parse json
         // ie. not NDJSON
-        console.log("The file is not NDJSON", error);
+        // console.log("The file is not NDJSON", error);
+        conversionErrors.value = ["Error:" + JSON.stringify(error)];
       }
     };
 
@@ -161,14 +191,25 @@ export default {
       handleNDJSONPaste,
       downloadO2JSON,
       copyToClipboard,
+      conversionWarnings,
+      conversionErrors,
     };
   },
 };
 </script>
 
 <style scoped>
-.container {
-  margin: 0 auto;
+.home-container {
+  display: flex;
+}
+
+.warning-container {
+  width: 50%;
+  margin-left: 30px;
+}
+
+.tab-container {
+  margin: 0 20px;
   padding: 10px 0px 0px 0px;
   border-radius: 10px;
 }

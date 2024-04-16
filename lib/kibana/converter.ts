@@ -25,7 +25,7 @@ const kibanaToO2ChartType: any = {
   heatmap: "heatmap",
 };
 
-const getKibanaChartType = (panelData: any) => {
+const getKibanaChartType = (panelData: any, errorAndWarningList: any) => {
   // first, check if there is a preferred chart type
   // else if check if there is a visualization type
   // else default to bar
@@ -33,12 +33,22 @@ const getKibanaChartType = (panelData: any) => {
     panelData?.embeddableConfig?.attributes?.state?.visualization
       ?.preferredSeriesType
   ) {
-    return (
+    const preferredSeriesType =
       kibanaToO2ChartType[
         panelData?.embeddableConfig?.attributes?.state?.visualization
           ?.preferredSeriesType
-      ] ?? "bar"
-    );
+      ];
+    if (preferredSeriesType) {
+      return preferredSeriesType;
+    } else {
+      errorAndWarningList.warningList.push(
+        `Warning: ${
+          panelData?.title ?? panelData?.attributes?.title
+        } Can not find preferred series type, using default chart type: bar`
+      );
+      // if preferred series type is not found
+      return "bar";
+    }
   } else if (
     panelData?.embeddableConfig?.attributes?.visualizationType == "lnsPie"
   ) {
@@ -60,6 +70,12 @@ const getKibanaChartType = (panelData: any) => {
   ) {
     return "table";
   } else {
+    errorAndWarningList.warningList.push(
+      `Warning: ${
+        panelData?.title ?? panelData?.attributes?.title
+      } Can not find chart type, using default chart type: bar`
+    );
+    // if visualization type is not found, then default to bar
     return "bar";
   }
 };
@@ -73,7 +89,7 @@ const kibanaToO2AggregationFunction: any = {
   max: "max",
 };
 
-const extractKibanaData = (kibanaJSON: any) => {
+const extractKibanaData = (kibanaJSON: any, errorAndWarningList: any) => {
   const kibanaData: any = {
     dashboard: [],
     index_pattern: [],
@@ -84,11 +100,17 @@ const extractKibanaData = (kibanaJSON: any) => {
   kibanaJSON.forEach((kibana: any) => {
     switch (kibana.type) {
       case "dashboard": {
-        // panelsJSON will be in stringify format, so we need to parse it
-        kibana.attributes.panelsJSON = JSON.parse(
-          kibana.attributes.panelsJSON ?? "[]"
-        );
-        kibanaData.dashboard.push(kibana);
+        try {
+          // panelsJSON will be in stringify format, so we need to parse it
+          kibana.attributes.panelsJSON = JSON.parse(
+            kibana.attributes.panelsJSON ?? "[]"
+          );
+          kibanaData.dashboard.push(kibana);
+        } catch (error) {
+          errorAndWarningList.errorList.push(
+            `Error: failed to parse PanelsJSON`
+          );
+        }
 
         break;
       }
@@ -106,7 +128,14 @@ const extractKibanaData = (kibanaJSON: any) => {
         break;
       }
       default: {
-        // ignore search, map and others types
+        if (kibana.type) {
+          // ignore search, map and others types
+          errorAndWarningList.errorList.push(
+            `Error: chart with type ${
+              kibana.type ?? ""
+            } is not supported for conversion (skipping)`
+          );
+        }
         break;
       }
     }
@@ -151,7 +180,17 @@ const setLegendConfig = (panel: any, panelData: any) => {
       : "right";
 };
 
-const getFirstLayer = (panel: any) => {
+const getFirstLayer = (panel: any, errorAndWarningList: any) => {
+  if (
+    panel?.embeddableConfig?.attributes?.state?.visualization?.layers?.length >
+    1
+  ) {
+    errorAndWarningList.warningList.push(
+      `Warning: ${
+        panel?.title ?? panel?.attributes?.title
+      } More than one layer found, using first Data layer.`
+    );
+  }
   return (
     panel?.embeddableConfig?.attributes?.state?.visualization?.layers?.find(
       (layer: any) => {
@@ -166,7 +205,8 @@ const getFirstLayer = (panel: any) => {
 const setFieldsBasedOnPanelType = (
   panel: any,
   panelData: any,
-  kibanaData: any
+  kibanaData: any,
+  errorAndWarningList: any
 ) => {
   switch (panelData.type) {
     case "h-bar":
@@ -180,7 +220,16 @@ const setFieldsBasedOnPanelType = (
     case "pie":
       {
         // get first layer from visualization
-        const firstDataLayer = getFirstLayer(panel);
+        const firstDataLayer = getFirstLayer(panel, errorAndWarningList);
+
+        if (!firstDataLayer) {
+          errorAndWarningList.errorList.push(
+            `Error: ${
+              panelData?.title ?? panelData?.attributes?.title
+            } failed to get Data layer, skipping panel`
+          );
+          return false;
+        }
 
         // set x, y axis
         // find first layer who has type as a data
@@ -296,6 +345,16 @@ const setFieldsBasedOnPanelType = (
       // get first layer from visualization
       const layerId =
         panel?.embeddableConfig?.attributes.state.visualization.layerId;
+
+      if (!layerId) {
+        errorAndWarningList.errorList.push(
+          `Error: ${
+            panel?.title ?? panel?.attributes?.title
+          } failed to get Data layer, skipping panel`
+        );
+        return false;
+      }
+
       const accessor =
         panel?.embeddableConfig?.attributes.state.visualization.accessor ??
         panel?.embeddableConfig?.attributes.state.visualization.metricAccessor;
@@ -340,27 +399,39 @@ const setFieldsBasedOnPanelType = (
         })?.id ?? null;
       panelData.queries[0].fields.stream =
         kibanaData.indexPatternMap[indexPatternId] ?? "";
-
-      break;
-    }
-    case "gauge":
-    case "heatmap":
-    case "table": {
       break;
     }
     default:
-      break;
+      errorAndWarningList.errorList.push(
+        `Error: ${panelData?.title ?? panelData?.attributes?.title} with type ${
+          panelData.type
+        } is not supported for conversion(skipping)`
+      );
+      return false;
   }
+  return true;
 };
 
 export const convertKibanaToO2 = (kibanaJSON: any) => {
   const o2Dashboard: O2Dashboard = getInitialDashboardData();
+  const errorAndWarningList: any = {
+    errorList: [],
+    warningList: [],
+  };
+
   try {
-    const kibanaData = extractKibanaData(kibanaJSON);
+    const kibanaData = extractKibanaData(kibanaJSON, errorAndWarningList);
 
     // convert dashboard
     if (kibanaData.dashboard.length > 0) {
-      o2Dashboard.title = kibanaData.dashboard[0].attributes.title;
+      if (kibanaData.dashboard[0].attributes.title) {
+        o2Dashboard.title = kibanaData.dashboard[0].attributes.title;
+      } else {
+        o2Dashboard.title = "Dashboard Title";
+        errorAndWarningList.warningList.push(
+          "Warning: Can not find dashboard title, using default title: Dashboard Title"
+        );
+      }
       o2Dashboard.description = kibanaData.dashboard[0].attributes.description;
 
       // loop on all panels
@@ -370,10 +441,15 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
 
         // set panel title
         // if title is not set, set default title as Panel [index]
-        panelData.title =
-          panel?.title ??
-          panel?.attributes?.title ??
-          "Panel " + (panelIndex + 1);
+        if (panel?.title || panel?.attributes?.title) {
+          panelData.title = panel?.title ?? panel?.attributes?.title;
+        } else {
+          panelData.title = "Panel " + (panelIndex + 1);
+          errorAndWarningList.warningList.push(
+            "Warning: Can not find panel title, using default title: Panel " +
+              (panelIndex + 1)
+          );
+        }
 
         switch (panel.type) {
           // currently, support for only lens type
@@ -382,7 +458,8 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
             // take first query type
             // openobserve only support one type per chart
 
-            panelData.type = getKibanaChartType(panel) ?? "bar";
+            panelData.type =
+              getKibanaChartType(panel, errorAndWarningList) ?? "bar";
 
             // set legend config
             // show_legends
@@ -390,34 +467,73 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
             setLegendConfig(panel, panelData);
 
             // set fields based on panel type
-            setFieldsBasedOnPanelType(panel, panelData, kibanaData);
+            const isValidFields = setFieldsBasedOnPanelType(
+              panel,
+              panelData,
+              kibanaData,
+              errorAndWarningList
+            );
+
+            // if fields is not valid then skip this panel
+            if (!isValidFields) {
+              break;
+            }
 
             // take unit from first vertical axis
             // default || number   ->    default
             // percent             ->    percent(0-100)
             // bytes(1024)         ->    bytes
 
-            // set layout
-            panelData.layout = {
-              x: panel?.gridData?.x ?? 0,
-              y: panel?.gridData?.y ?? 0,
-              w: panel?.gridData?.w ?? 24,
-              h: Math.max(3, panel?.gridData?.h ?? 9 - 3),
-              i: panelIndex,
-            };
+            if (panel.gridData) {
+              // set layout
+              panelData.layout = {
+                x: panel?.gridData?.x ?? 0,
+                y: panel?.gridData?.y ?? 0,
+                w: panel?.gridData?.w ?? 24,
+                h: Math.max(3, panel?.gridData?.h ?? 9 - 3),
+                i: panelIndex,
+              };
+            } else {
+              errorAndWarningList.warningList.push(
+                `Warning: ${
+                  panelData?.title ?? panelData?.attributes?.title
+                } Can not find panel layout, using default layout`
+              );
+
+              // set default layout
+              panelData.layout = {
+                x: 0,
+                y: 0,
+                w: 24,
+                h: 6,
+                i: panelIndex,
+              };
+            }
 
             // make query based on fields and stream
             panelData.queries[0].query = sqlchart(panelData, 0);
 
             // push panel into o2Dashboard
             o2Dashboard.tabs[0].panels.push(panelData);
+            break;
+          }
+          default: {
+            errorAndWarningList.errorList.push(
+              `Error: ${
+                panelData?.title ?? panelData?.attributes?.title
+              } unsupported panel conversion (skipping)`
+            );
           }
         }
       });
+    } else {
+      errorAndWarningList.errorList.push(
+        "Error: No object fount with type dashboard"
+      );
     }
   } catch (error) {
-    console.log(error);
+    errorAndWarningList.errorList.push("Error: " + JSON.stringify(error));
   } finally {
-    return o2Dashboard;
+    return { dashboard: o2Dashboard, errorAndWarningList };
   }
 };
