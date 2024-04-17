@@ -233,7 +233,7 @@ const setFieldsBasedOnPanelType = (
 
         // set x, y axis
         // find first layer who has type as a data
-        let kibanaColumns: any = [];
+        let kibanaColumns: any = {};
 
         // there will be three types of datasourceStates
         // formBased, indexpattern and textBased
@@ -401,6 +401,89 @@ const setFieldsBasedOnPanelType = (
         kibanaData.indexPatternMap[indexPatternId] ?? "";
       break;
     }
+    case "table": {
+      console.log("table", panel, panelData);
+      // get layerId from visualization
+      const layerId =
+        panel?.embeddableConfig?.attributes.state?.visualization?.layerId;
+
+      if (!layerId) {
+        errorAndWarningList.errorList.push(
+          `Error: ${
+            panel?.title ?? panel?.attributes?.title
+          } failed to get Data layer, skipping panel`
+        );
+        return false;
+      }
+
+      let kibanaColumns: any = {};
+      // there will be three types of datasourceStates
+      // formBased, indexpattern and textBased
+      // loop on each datasourceStates
+      Object.keys(
+        panel?.embeddableConfig?.attributes?.state?.datasourceStates
+      ).forEach((key) => {
+        // if columns are found
+        // then assign to kibanaColumns
+        if (
+          panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+            ?.layers[layerId]?.columns
+        ) {
+          kibanaColumns =
+            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+              ?.layers[layerId]?.columns ?? {};
+        }
+      });
+
+      if (Object.keys(kibanaColumns).length == 0) {
+        errorAndWarningList.errorList.push(
+          `Error: ${
+            panel?.title ?? panel?.attributes?.title
+          } failed to get columns, skipping panel`
+        );
+      }
+
+      // loop on each columns
+      // if column dataType is number push into y axis
+      // else push into x axis
+      Object.keys(kibanaColumns).forEach((columnId: any) => {
+        if (kibanaColumns[columnId].dataType == "number") {
+          panelData.queries[0].fields.y.push({
+            label: kibanaColumns[columnId].label,
+            alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
+            column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
+            aggregationFunction:
+              kibanaToO2AggregationFunction[
+                kibanaColumns[columnId].operationType
+              ] ?? "count",
+            sort_by: "ASC",
+          });
+        } else {
+          panelData.queries[0].fields.x.push({
+            label: kibanaColumns[columnId].label,
+            alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
+            column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
+            sort_by: "ASC",
+          });
+        }
+      });
+
+      // set stream based on index pattern
+      // first get index pattern id of first layer of current panel
+      // then get stream name from index pattern id
+      // find index pattern id, where name is indexpattern-datasource-layer-<layerId>
+      const indexPatternId =
+        panel?.embeddableConfig?.attributes?.references?.find((ref: any) => {
+          return (
+            ref.type === "index-pattern" &&
+            ref.name === `indexpattern-datasource-layer-${layerId}`
+          );
+        })?.id ?? null;
+      panelData.queries[0].fields.stream =
+        kibanaData.indexPatternMap[indexPatternId] ?? "";
+
+      break;
+    }
     default:
       errorAndWarningList.errorList.push(
         `Error: ${panelData?.title ?? panelData?.attributes?.title} with type ${
@@ -532,7 +615,7 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
       );
     }
   } catch (error) {
-    errorAndWarningList.errorList.push("Error: " + JSON.stringify(error));
+    console.log(error);
   } finally {
     return { dashboard: o2Dashboard, errorAndWarningList };
   }
