@@ -43,8 +43,10 @@ const getKibanaChartType = (panelData: any, errorAndWarningList: any) => {
     } else {
       errorAndWarningList.warningList.push(
         `Warning: ${
-          panelData?.title ?? panelData?.attributes?.title
-        } Can not find preferred series type, using default chart type: bar`
+          panelData?.title ??
+          panelData?.embeddableConfig?.attributes?.title ??
+          panelData?.attributes?.title
+        } -> Can not find preferred series type, using default chart type: bar`
       );
       // if preferred series type is not found
       return "bar";
@@ -72,8 +74,10 @@ const getKibanaChartType = (panelData: any, errorAndWarningList: any) => {
   } else {
     errorAndWarningList.warningList.push(
       `Warning: ${
-        panelData?.title ?? panelData?.attributes?.title
-      } Can not find chart type, using default chart type: bar`
+        panelData?.title ??
+        panelData?.embeddableConfig?.attributes?.title ??
+        panelData?.attributes?.title
+      } -> Can not find chart type, using default chart type: bar`
     );
     // if visualization type is not found, then default to bar
     return "bar";
@@ -188,7 +192,7 @@ const getFirstLayer = (panel: any, errorAndWarningList: any) => {
     errorAndWarningList.warningList.push(
       `Warning: ${
         panel?.title ?? panel?.attributes?.title
-      } More than one layer found, using first Data layer.`
+      } -> More than one layer found, using first Data layer.`
     );
   }
   return (
@@ -226,7 +230,7 @@ const setFieldsBasedOnPanelType = (
           errorAndWarningList.errorList.push(
             `Error: ${
               panelData?.title ?? panelData?.attributes?.title
-            } failed to get Data layer, skipping panel`
+            } -> failed to get Data layer, skipping panel`
           );
           return false;
         }
@@ -281,7 +285,7 @@ const setFieldsBasedOnPanelType = (
           panelData.queries[0].fields.x.push({
             label: kibanaColumns[xAccessor]?.label,
             alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-            column: kibanaColumns[xAccessor].sourceField.replace(/\./g, "_"),
+            column: kibanaColumns[xAccessor]?.sourceField?.replace(/\./g, "_"),
             sort_by: "ASC",
           });
         }
@@ -292,7 +296,7 @@ const setFieldsBasedOnPanelType = (
           panelData.queries[0].fields.x.push({
             label: kibanaColumns[splitAccessor]?.label,
             alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-            column: kibanaColumns[splitAccessor].sourceField.replace(
+            column: kibanaColumns[splitAccessor]?.sourceField?.replace(
               /\./g,
               "_"
             ),
@@ -314,7 +318,7 @@ const setFieldsBasedOnPanelType = (
             panelData.queries[0].fields.y.push({
               label: kibanaColumns[columnId]?.label,
               alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
-              column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
+              column: kibanaColumns[columnId]?.sourceField?.replace(/\./g, "_"),
               aggregationFunction:
                 kibanaToO2AggregationFunction[
                   kibanaColumns[columnId].operationType
@@ -350,7 +354,7 @@ const setFieldsBasedOnPanelType = (
         errorAndWarningList.errorList.push(
           `Error: ${
             panel?.title ?? panel?.attributes?.title
-          } failed to get Data layer, skipping panel`
+          } -> failed to get Data layer, skipping panel`
         );
         return false;
       }
@@ -402,7 +406,6 @@ const setFieldsBasedOnPanelType = (
       break;
     }
     case "table": {
-      console.log("table", panel, panelData);
       // get layerId from visualization
       const layerId =
         panel?.embeddableConfig?.attributes.state?.visualization?.layerId;
@@ -411,7 +414,7 @@ const setFieldsBasedOnPanelType = (
         errorAndWarningList.errorList.push(
           `Error: ${
             panel?.title ?? panel?.attributes?.title
-          } failed to get Data layer, skipping panel`
+          } -> failed to get Data layer, skipping panel`
         );
         return false;
       }
@@ -439,7 +442,7 @@ const setFieldsBasedOnPanelType = (
         errorAndWarningList.errorList.push(
           `Error: ${
             panel?.title ?? panel?.attributes?.title
-          } failed to get columns, skipping panel`
+          } -> failed to get columns, skipping panel`
         );
       }
 
@@ -447,24 +450,31 @@ const setFieldsBasedOnPanelType = (
       // if column dataType is number push into y axis
       // else push into x axis
       Object.keys(kibanaColumns).forEach((columnId: any) => {
-        if (kibanaColumns[columnId].dataType == "number") {
+        if (
+          kibanaColumns[columnId].dataType == "number" &&
+          kibanaColumns[columnId].sourceField
+        ) {
           panelData.queries[0].fields.y.push({
             label: kibanaColumns[columnId].label,
             alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
-            column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
+            column: kibanaColumns[columnId]?.sourceField?.replace(/\./g, "_"),
             aggregationFunction:
               kibanaToO2AggregationFunction[
                 kibanaColumns[columnId].operationType
               ] ?? "count",
             sort_by: "ASC",
           });
-        } else {
+        } else if (kibanaColumns[columnId].sourceField) {
           panelData.queries[0].fields.x.push({
             label: kibanaColumns[columnId].label,
             alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-            column: kibanaColumns[columnId].sourceField.replace(/\./g, "_"),
+            column: kibanaColumns[columnId]?.sourceField?.replace(/\./g, "_"),
             sort_by: "ASC",
           });
+        } else {
+          errorAndWarningList.warningList.push(
+            `Warning: ${panelData.title} -> field with label ${kibanaColumns[columnId].label} has missing sourceField, skipping column`
+          );
         }
       });
 
@@ -600,10 +610,141 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
             o2Dashboard.tabs[0].panels.push(panelData);
             break;
           }
+          case "visualization": {
+            console.log(panel);
+            if (!panel?.embeddableConfig?.attributes?.visState) {
+              errorAndWarningList.warningList.push(
+                `Warning: ${
+                  panelData?.title ?? panelData?.attributes?.title
+                } -> Can not find visState, skipping`
+              );
+              break;
+            }
+            panel.embeddableConfig.attributes.visState = JSON.parse(
+              panel?.embeddableConfig?.attributes?.visState ?? "{}"
+            );
+
+            switch (panel.embeddableConfig.attributes.visState.type) {
+              case "markdown": {
+                panelData.type = "markdown";
+                panelData.markdownContent =
+                  panel.embeddableConfig.attributes.visState.params.markdown ??
+                  "";
+
+                if (panel.gridData) {
+                  // set layout
+                  panelData.layout = {
+                    x: panel?.gridData?.x ?? 0,
+                    y: panel?.gridData?.y ?? 0,
+                    w: panel?.gridData?.w ?? 24,
+                    h: Math.max(3, panel?.gridData?.h ?? 9 - 3),
+                    i: panelIndex,
+                  };
+                } else {
+                  errorAndWarningList.warningList.push(
+                    `Warning: ${
+                      panelData?.title ?? panelData?.attributes?.title
+                    } -> Can not find panel layout, using default layout`
+                  );
+
+                  // set default layout
+                  panelData.layout = {
+                    x: 0,
+                    y: 0,
+                    w: 24,
+                    h: 6,
+                    i: panelIndex,
+                  };
+                }
+
+                // push panel into o2Dashboard
+                o2Dashboard.tabs[0].panels.push(panelData);
+                break;
+              }
+              case "metrics": {
+                // console.log(panel);
+
+                // in x axis add time field
+                if (panel?.attributes?.visState?.params?.type == "timeseries") {
+                  if (panel?.attributes?.visState?.params?.time_field) {
+                    panelData.queries[0].fields.x.push({
+                      label: panel?.attributes?.visState?.params?.time_field,
+                      alias:
+                        "x_axis_" + (panelData.queries[0].fields.x.length + 1),
+                      column:
+                        panel?.attributes?.visState?.params?.time_field?.replace(
+                          /\./g,
+                          "_"
+                        ),
+                      aggregationFunction: "histogram",
+                      sort_by: "DESC",
+                    });
+                  }
+                }
+
+                // set metrics fields in y axis
+                if (panel?.attributes?.visState?.params?.series) {
+                  panel?.attributes?.visState?.params?.series.forEach(
+                    (series: any) => {
+                      if (series?.metrics && series?.metrics?.length > 0) {
+                        panelData.queries[0].fields.y.push({
+                          label:
+                            series?.label ?? series?.metrics[0].field ?? " ",
+                          alias:
+                            "y_axis_" +
+                            (panelData.queries[0].fields.y.length + 1),
+                          column: series?.metrics[0].field?.replace(/\./g, "_"),
+                          aggregationFunction:
+                            kibanaToO2AggregationFunction[
+                              series?.metrics[0].type
+                            ] ?? "count",
+                          sort_by: "ASC",
+                        });
+                      }
+                    }
+                  );
+                }
+
+                // panel type will be set from first series
+                panelData.type =
+                  panel?.attributes?.visState?.params?.series[0].chart_type ??
+                  "bar";
+
+                // set default layout
+                panelData.layout = {
+                  x: 0,
+                  y: 0,
+                  w: 24,
+                  h: 6,
+                  i: panelIndex,
+                };
+
+                // make query based on fields and stream
+                panelData.queries[0].query = sqlchart(panelData, 0);
+
+                // push panel into o2Dashboard
+                o2Dashboard.tabs[0].panels.push(panelData);
+                break;
+              }
+              default: {
+                errorAndWarningList.errorList.push(
+                  `Error: ${
+                    panelData?.title ??
+                    panelData?.embeddableConfig?.attributes?.title ??
+                    panelData?.attributes?.title
+                  } -> unsupported panel conversion (skipping)`
+                );
+                break;
+              }
+            }
+            break;
+          }
           default: {
             errorAndWarningList.errorList.push(
               `Error: ${
-                panelData?.title ?? panelData?.attributes?.title
+                panelData?.title ??
+                panelData?.embeddableConfig?.attributes?.title ??
+                panelData?.attributes?.title
               } unsupported panel conversion (skipping)`
             );
           }
