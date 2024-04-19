@@ -99,7 +99,15 @@ export default {
           lines.forEach((line) => {
             if (line) jsonArray.push(JSON.parse(line));
           });
-          const o2ConversionRes = convertKibanaToO2(jsonArray);
+          // params
+          // jsonArray
+          // timestampField
+          // default stream name
+          const o2ConversionRes = convertKibanaToO2(
+            jsonArray,
+            "_timestamp",
+            "es2"
+          );
           o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
           conversionErrors.value =
             o2ConversionRes.errorAndWarningList.errorList;
@@ -128,7 +136,11 @@ export default {
             lines.forEach((line) => {
               if (line) jsonArray.push(JSON.parse(line));
             });
-            const o2ConversionRes = convertKibanaToO2(jsonArray);
+            const o2ConversionRes = convertKibanaToO2(
+              jsonArray,
+              "_timestamp",
+              "es2"
+            );
             o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
             conversionErrors.value =
               o2ConversionRes.errorAndWarningList.errorList;
@@ -152,7 +164,11 @@ export default {
         lines.forEach((line) => {
           if (line) jsonArray.push(JSON.parse(line));
         });
-        const o2ConversionRes = convertKibanaToO2(jsonArray);
+        const o2ConversionRes = convertKibanaToO2(
+          jsonArray,
+          "_timestamp",
+          "es2"
+        );
         o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
         conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
         conversionWarnings.value =

@@ -9,9 +9,11 @@ const kibanaToO2ChartType: any = {
   metric: "metric",
   table: "table",
   bar_horizontal: "h-bar",
+  horizontal_bar: "h-bar",
   bar_horizontal_percentage: "h-stacked",
   bar_horizontal_stacked: "h-stacked",
   bar: "bar",
+  histogram: "bar",
   bar_stacked: "stacked",
   bar_stacked_percentage: "stacked",
   bar_percentage_stacked: "stacked",
@@ -22,7 +24,9 @@ const kibanaToO2ChartType: any = {
   donut: "donut",
   pie: "pie",
   gauge: "gauge",
+  goal: "gauge",
   heatmap: "heatmap",
+  lnsHeatmap: "heatmap",
 };
 
 const getKibanaChartType = (panelData: any, errorAndWarningList: any) => {
@@ -71,6 +75,10 @@ const getKibanaChartType = (panelData: any, errorAndWarningList: any) => {
     panelData?.embeddableConfig?.attributes?.visualizationType == "lnsDatatable"
   ) {
     return "table";
+  } else if (
+    panelData?.embeddableConfig?.attributes?.visualizationType == "lnsHeatmap"
+  ) {
+    return "heatmap";
   } else {
     errorAndWarningList.warningList.push(
       `Warning: ${
@@ -91,6 +99,7 @@ const kibanaToO2AggregationFunction: any = {
   avg: "avg",
   min: "min",
   max: "max",
+  hisogram: "histogram",
 };
 
 const extractKibanaData = (kibanaJSON: any, errorAndWarningList: any) => {
@@ -195,15 +204,20 @@ const getFirstLayer = (panel: any, errorAndWarningList: any) => {
       } -> More than one layer found, using first Data layer.`
     );
   }
-  return (
+  const firstDataLayer =
     panel?.embeddableConfig?.attributes?.state?.visualization?.layers?.find(
       (layer: any) => {
         return layer?.layerType === "data";
       }
-    ) ??
-    panel?.embeddableConfig?.attributes?.state?.visualization?.layerId ??
-    null
-  );
+    ) ?? null;
+
+  if (!firstDataLayer) {
+    if (panel?.embeddableConfig?.attributes?.state?.visualization?.layerId) {
+      return panel?.embeddableConfig?.attributes?.state?.visualization;
+    }
+  }
+
+  return firstDataLayer;
 };
 
 const setFieldsBasedOnPanelType = (
@@ -221,130 +235,128 @@ const setFieldsBasedOnPanelType = (
     case "area-stacked":
     case "line":
     case "donut":
-    case "pie":
-      {
-        // get first layer from visualization
-        const firstDataLayer = getFirstLayer(panel, errorAndWarningList);
+    case "pie": {
+      // get first layer from visualization
+      const firstDataLayer = getFirstLayer(panel, errorAndWarningList);
 
-        if (!firstDataLayer) {
-          errorAndWarningList.errorList.push(
-            `Error: ${
-              panelData?.title ?? panelData?.attributes?.title
-            } -> failed to get Data layer, skipping panel`
-          );
-          return false;
-        }
-
-        // set x, y axis
-        // find first layer who has type as a data
-        let kibanaColumns: any = {};
-
-        // there will be three types of datasourceStates
-        // formBased, indexpattern and textBased
-        // loop on each datasourceStates
-        Object.keys(
-          panel?.embeddableConfig?.attributes?.state?.datasourceStates
-        ).forEach((key) => {
-          // if columns are found
-          // then assign to kibanaColumns
-          if (
-            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
-              ?.layers[firstDataLayer?.layerId]?.columns
-          ) {
-            kibanaColumns =
-              panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
-                ?.layers[firstDataLayer?.layerId]?.columns ?? {};
-          }
-        });
-
-        // x axis field
-        let xAccessor = firstDataLayer?.xAccessor ?? null;
-
-        // for pie, donut and metric
-        // we need to get first metric
-        if (
-          panelData.type == "pie" ||
-          panelData.type == "donut" ||
-          panelData.type == "metric"
-        ) {
-          if (firstDataLayer.metric) {
-            xAccessor = firstDataLayer.metric;
-          } else if (firstDataLayer.metrics) {
-            // take first metric
-            xAccessor = firstDataLayer.metrics[0];
-          }
-        }
-
-        // split accessor
-        const splitAccessor = firstDataLayer?.splitAccessor ?? null;
-
-        // add into x axis
-        if (kibanaColumns[xAccessor]) {
-          // add into x axis
-          // NOTE: for timestamp field histogram function is pending
-          panelData.queries[0].fields.x.push({
-            label: kibanaColumns[xAccessor]?.label,
-            alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-            column: kibanaColumns[xAccessor]?.sourceField?.replace(/\./g, "_"),
-            sort_by: "ASC",
-          });
-        }
-
-        // add splitter as a 2nd field into x axis
-        if (kibanaColumns[splitAccessor]) {
-          // add into x axis as 2nd field
-          panelData.queries[0].fields.x.push({
-            label: kibanaColumns[splitAccessor]?.label,
-            alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-            column: kibanaColumns[splitAccessor]?.sourceField?.replace(
-              /\./g,
-              "_"
-            ),
-            sort_by: "ASC",
-          });
-        }
-
-        // add y axis
-        // all columns array except xAccessor and splitAccessor
-        Object.keys(kibanaColumns).forEach((columnId: any) => {
-          // if columnId is not equal to xAccessor or splitAccessor
-          // then add it to y axis
-          // also, check source field is not null
-          if (
-            columnId !== xAccessor &&
-            columnId !== splitAccessor &&
-            kibanaColumns[columnId].sourceField
-          ) {
-            panelData.queries[0].fields.y.push({
-              label: kibanaColumns[columnId]?.label,
-              alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
-              column: kibanaColumns[columnId]?.sourceField?.replace(/\./g, "_"),
-              aggregationFunction:
-                kibanaToO2AggregationFunction[
-                  kibanaColumns[columnId].operationType
-                ] ?? "count",
-              sort_by: "ASC",
-            });
-          }
-        });
-
-        // set stream based on index pattern
-        // first get index pattern id of first layer of current panel
-        // then get stream name from index pattern id
-        // find index pattern id, where name is indexpattern-datasource-layer-<layerId>
-        const indexPatternId =
-          panel?.embeddableConfig?.attributes?.references?.find((ref: any) => {
-            return (
-              ref.type === "index-pattern" &&
-              ref.name ===
-                `indexpattern-datasource-layer-${firstDataLayer?.layerId}`
-            );
-          })?.id ?? null;
-        panelData.queries[0].fields.stream =
-          kibanaData.indexPatternMap[indexPatternId] ?? "";
+      if (!firstDataLayer) {
+        errorAndWarningList.errorList.push(
+          `Error: ${
+            panelData?.title ?? panelData?.attributes?.title
+          } -> failed to get Data layer, skipping panel`
+        );
+        return false;
       }
-      break;
 
+      // set x, y axis
+      // find first layer who has type as a data
+      let kibanaColumns: any = {};
+
+      // there will be three types of datasourceStates
+      // formBased, indexpattern and textBased
+      // loop on each datasourceStates
+      Object.keys(
+        panel?.embeddableConfig?.attributes?.state?.datasourceStates
+      ).forEach((key) => {
+        // if columns are found
+        // then assign to kibanaColumns
+        if (
+          panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+            ?.layers[firstDataLayer?.layerId]?.columns
+        ) {
+          kibanaColumns =
+            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+              ?.layers[firstDataLayer?.layerId]?.columns ?? {};
+        }
+      });
+
+      // x axis field
+      let xAccessor = firstDataLayer?.xAccessor ?? null;
+
+      // for pie, donut and metric
+      // we need to get first metric
+      if (
+        panelData.type == "pie" ||
+        panelData.type == "donut" ||
+        panelData.type == "metric"
+      ) {
+        if (firstDataLayer.metric) {
+          xAccessor = firstDataLayer.metric;
+        } else if (firstDataLayer.metrics) {
+          // take first metric
+          xAccessor = firstDataLayer.metrics[0];
+        }
+      }
+
+      // split accessor
+      const splitAccessor = firstDataLayer?.splitAccessor ?? null;
+
+      // add into x axis
+      if (kibanaColumns[xAccessor]) {
+        // add into x axis
+        // NOTE: for timestamp field histogram function is pending
+        panelData.queries[0].fields.x.push({
+          label: kibanaColumns[xAccessor]?.label,
+          alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
+          column: kibanaColumns[xAccessor]?.sourceField?.replace(/\./g, "_"),
+          sort_by: "ASC",
+        });
+      }
+
+      // add splitter as a 2nd field into x axis
+      if (kibanaColumns[splitAccessor]) {
+        // add into x axis as 2nd field
+        panelData.queries[0].fields.x.push({
+          label: kibanaColumns[splitAccessor]?.label,
+          alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
+          column: kibanaColumns[splitAccessor]?.sourceField?.replace(
+            /\./g,
+            "_"
+          ),
+          sort_by: "ASC",
+        });
+      }
+
+      // add y axis
+      // all columns array except xAccessor and splitAccessor
+      Object.keys(kibanaColumns).forEach((columnId: any) => {
+        // if columnId is not equal to xAccessor or splitAccessor
+        // then add it to y axis
+        // also, check source field is not null
+        if (
+          columnId !== xAccessor &&
+          columnId !== splitAccessor &&
+          kibanaColumns[columnId].sourceField
+        ) {
+          panelData.queries[0].fields.y.push({
+            label: kibanaColumns[columnId]?.label,
+            alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
+            column: kibanaColumns[columnId]?.sourceField?.replace(/\./g, "_"),
+            aggregationFunction:
+              kibanaToO2AggregationFunction[
+                kibanaColumns[columnId].operationType
+              ] ?? "count",
+            sort_by: "ASC",
+          });
+        }
+      });
+
+      // set stream based on index pattern
+      // first get index pattern id of first layer of current panel
+      // then get stream name from index pattern id
+      // find index pattern id, where name is indexpattern-datasource-layer-<layerId>
+      const indexPatternId =
+        panel?.embeddableConfig?.attributes?.references?.find((ref: any) => {
+          return (
+            ref.type === "index-pattern" &&
+            ref.name ===
+              `indexpattern-datasource-layer-${firstDataLayer?.layerId}`
+          );
+        })?.id ?? null;
+      panelData.queries[0].fields.stream =
+        kibanaData.indexPatternMap[indexPatternId] ?? "";
+      break;
+    }
     case "metric": {
       // get first layer from visualization
       const layerId =
@@ -381,7 +393,7 @@ const setFieldsBasedOnPanelType = (
       panelData.queries[0].fields.y.push({
         label: columnData?.label,
         alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
-        column: columnData.sourceField.replace(/\./g, "_"),
+        column: columnData?.sourceField?.replace(/\./g, "_"),
         aggregationFunction:
           kibanaToO2AggregationFunction[columnData.operationType] ?? "count",
         sort_by: "ASC",
@@ -494,6 +506,106 @@ const setFieldsBasedOnPanelType = (
 
       break;
     }
+    case "heatmap": {
+      // get first layer from visualization
+      const firstDataLayer = getFirstLayer(panel, errorAndWarningList);
+
+      if (!firstDataLayer) {
+        errorAndWarningList.errorList.push(
+          `Error: ${
+            panelData?.title ?? panelData?.attributes?.title
+          } -> failed to get Data layer, skipping panel`
+        );
+        return false;
+      }
+
+      // set x, y axis
+      // find first layer who has type as a data
+      let kibanaColumns: any = {};
+
+      // there will be three types of datasourceStates
+      // formBased, indexpattern and textBased
+      // loop on each datasourceStates
+      Object.keys(
+        panel?.embeddableConfig?.attributes?.state?.datasourceStates
+      ).forEach((key) => {
+        // if columns are found
+        // then assign to kibanaColumns
+        if (
+          panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+            ?.layers[firstDataLayer?.layerId]?.columns
+        ) {
+          kibanaColumns =
+            panel?.embeddableConfig?.attributes?.state?.datasourceStates[key]
+              ?.layers[firstDataLayer?.layerId]?.columns ?? {};
+        }
+      });
+
+      // x accessor -> x axis field
+      const xAccessor = firstDataLayer?.xAccessor ?? null;
+
+      // y accessor -> y axis field
+      const yAccessor = firstDataLayer?.yAccessor ?? null;
+
+      // valueAccessor -> z axis field
+      const valueAccessor = firstDataLayer?.valueAccessor ?? null;
+
+      // add x axis
+      if (kibanaColumns[xAccessor]) {
+        // add into x axis
+        // NOTE: for timestamp field histogram function is pending
+        panelData.queries[0].fields.x.push({
+          label: kibanaColumns[xAccessor]?.label,
+          alias: "x_axis_" + (panelData.queries[0].fields.x.length + 1),
+          column: kibanaColumns[xAccessor]?.sourceField?.replace(/\./g, "_"),
+          sort_by: "ASC",
+        });
+      }
+
+      // add y axis
+      if (kibanaColumns[yAccessor]) {
+        panelData.queries[0].fields.y.push({
+          label: kibanaColumns[yAccessor]?.label,
+          alias: "y_axis_" + (panelData.queries[0].fields.y.length + 1),
+          column: kibanaColumns[yAccessor]?.sourceField?.replace(/\./g, "_"),
+          sort_by: "ASC",
+        });
+      }
+
+      //  add z axis
+      if (kibanaColumns[valueAccessor]) {
+        // add into x axis as 3rd field
+        panelData.queries[0].fields.z.push({
+          label: kibanaColumns[valueAccessor]?.label,
+          alias: "z_axis_" + (panelData.queries[0].fields.z.length + 1),
+          column: kibanaColumns[valueAccessor]?.sourceField?.replace(
+            /\./g,
+            "_"
+          ),
+          aggregationFunction:
+            kibanaToO2AggregationFunction[
+              kibanaColumns[valueAccessor].operationType
+            ] ?? "count",
+          sort_by: "ASC",
+        });
+      }
+
+      // set stream based on index pattern
+      // first get index pattern id of first layer of current panel
+      // then get stream name from index pattern id
+      // find index pattern id, where name is indexpattern-datasource-layer-<layerId>
+      const indexPatternId =
+        panel?.embeddableConfig?.attributes?.references?.find((ref: any) => {
+          return (
+            ref.type === "index-pattern" &&
+            ref.name ===
+              `indexpattern-datasource-layer-${firstDataLayer?.layerId}`
+          );
+        })?.id ?? null;
+      panelData.queries[0].fields.stream =
+        kibanaData.indexPatternMap[indexPatternId] ?? "";
+      break;
+    }
     default:
       errorAndWarningList.errorList.push(
         `Error: ${panelData?.title ?? panelData?.attributes?.title} with type ${
@@ -505,7 +617,11 @@ const setFieldsBasedOnPanelType = (
   return true;
 };
 
-export const convertKibanaToO2 = (kibanaJSON: any) => {
+export const convertKibanaToO2 = (
+  kibanaJSON: any,
+  timestampField: string = "_timestamp",
+  defaultStreamName: string = "default"
+) => {
   const o2Dashboard: O2Dashboard = getInitialDashboardData();
   const errorAndWarningList: any = {
     errorList: [],
@@ -611,119 +727,137 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
             break;
           }
           case "visualization": {
-            console.log(panel);
-            if (!panel?.embeddableConfig?.attributes?.visState) {
-              errorAndWarningList.warningList.push(
-                `Warning: ${
-                  panelData?.title ?? panelData?.attributes?.title
-                } -> Can not find visState, skipping`
-              );
-              break;
-            }
-            panel.embeddableConfig.attributes.visState = JSON.parse(
-              panel?.embeddableConfig?.attributes?.visState ?? "{}"
-            );
-
-            switch (panel.embeddableConfig.attributes.visState.type) {
+            switch (panel?.embeddableConfig?.savedVis?.type) {
               case "markdown": {
                 panelData.type = "markdown";
                 panelData.markdownContent =
-                  panel.embeddableConfig.attributes.visState.params.markdown ??
-                  "";
-
-                if (panel.gridData) {
-                  // set layout
-                  panelData.layout = {
-                    x: panel?.gridData?.x ?? 0,
-                    y: panel?.gridData?.y ?? 0,
-                    w: panel?.gridData?.w ?? 24,
-                    h: Math.max(3, panel?.gridData?.h ?? 9 - 3),
-                    i: panelIndex,
-                  };
-                } else {
-                  errorAndWarningList.warningList.push(
-                    `Warning: ${
-                      panelData?.title ?? panelData?.attributes?.title
-                    } -> Can not find panel layout, using default layout`
-                  );
-
-                  // set default layout
-                  panelData.layout = {
-                    x: 0,
-                    y: 0,
-                    w: 24,
-                    h: 6,
-                    i: panelIndex,
-                  };
-                }
-
-                // push panel into o2Dashboard
-                o2Dashboard.tabs[0].panels.push(panelData);
+                  panel?.embeddableConfig?.savedVis?.params?.markdown ?? "";
                 break;
               }
-              case "metrics": {
-                // console.log(panel);
-
-                // in x axis add time field
-                if (panel?.attributes?.visState?.params?.type == "timeseries") {
-                  if (panel?.attributes?.visState?.params?.time_field) {
-                    panelData.queries[0].fields.x.push({
-                      label: panel?.attributes?.visState?.params?.time_field,
-                      alias:
-                        "x_axis_" + (panelData.queries[0].fields.x.length + 1),
-                      column:
-                        panel?.attributes?.visState?.params?.time_field?.replace(
-                          /\./g,
-                          "_"
-                        ),
-                      aggregationFunction: "histogram",
-                      sort_by: "DESC",
-                    });
-                  }
-                }
-
-                // set metrics fields in y axis
-                if (panel?.attributes?.visState?.params?.series) {
-                  panel?.attributes?.visState?.params?.series.forEach(
-                    (series: any) => {
-                      if (series?.metrics && series?.metrics?.length > 0) {
-                        panelData.queries[0].fields.y.push({
-                          label:
-                            series?.label ?? series?.metrics[0].field ?? " ",
-                          alias:
-                            "y_axis_" +
-                            (panelData.queries[0].fields.y.length + 1),
-                          column: series?.metrics[0].field?.replace(/\./g, "_"),
-                          aggregationFunction:
-                            kibanaToO2AggregationFunction[
-                              series?.metrics[0].type
-                            ] ?? "count",
-                          sort_by: "ASC",
-                        });
-                      }
-                    }
-                  );
-                }
-
-                // panel type will be set from first series
+              case "metric":
+              case "gauge":
+              case "pie":
+              case "area":
+              case "line":
+              case "goal":
+              case "histogram":
+              case "horizontal_bar":
+              case "table": {
                 panelData.type =
-                  panel?.attributes?.visState?.params?.series[0].chart_type ??
-                  "bar";
+                  kibanaToO2ChartType[
+                    panel?.embeddableConfig?.savedVis?.type
+                  ] ?? "bar";
 
-                // set default layout
-                panelData.layout = {
-                  x: 0,
-                  y: 0,
-                  w: 24,
-                  h: 6,
-                  i: panelIndex,
-                };
+                panel?.embeddableConfig?.savedVis?.data?.aggs?.forEach(
+                  (fieldObj: any) => {
+                    if (fieldObj.schema == "metric") {
+                      panelData.queries[0].fields.y.push({
+                        label:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        alias:
+                          "y_axis_" +
+                          (panelData.queries[0].fields.y.length + 1),
+                        column:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        aggregationFunction:
+                          kibanaToO2AggregationFunction[fieldObj?.type] ??
+                          "count",
+                        sort_by: "ASC",
+                      });
+                    } else if (
+                      fieldObj.schema == "group" ||
+                      fieldObj.schema == "segment" ||
+                      fieldObj.schema == "bucket"
+                    ) {
+                      panelData.queries[0].fields.x.push({
+                        label:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        alias:
+                          "x_axis_" +
+                          (panelData.queries[0].fields.x.length + 1),
+                        column:
+                          fieldObj.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        aggregationFunction:
+                          kibanaToO2AggregationFunction[fieldObj?.type] ?? null,
+                        sort_by: "ASC",
+                      });
+                    }
+                  }
+                );
+
+                // use default stream name
+                panelData.queries[0].fields.stream =
+                  defaultStreamName ?? "default";
 
                 // make query based on fields and stream
                 panelData.queries[0].query = sqlchart(panelData, 0);
+                break;
+              }
+              case "heatmap": {
+                panelData.type = "heatmap";
 
-                // push panel into o2Dashboard
-                o2Dashboard.tabs[0].panels.push(panelData);
+                panel?.embeddableConfig?.savedVis?.data?.aggs?.forEach(
+                  (fieldObj: any) => {
+                    if (fieldObj.schema == "group") {
+                      panelData.queries[0].fields.y.push({
+                        label:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        alias:
+                          "y_axis_" +
+                          (panelData.queries[0].fields.y.length + 1),
+                        column:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        aggregationFunction:
+                          kibanaToO2AggregationFunction[fieldObj?.type] ?? null,
+                        sort_by: "ASC",
+                      });
+                    } else if (fieldObj.schema == "segment") {
+                      panelData.queries[0].fields.x.push({
+                        label:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        alias:
+                          "x_axis_" +
+                          (panelData.queries[0].fields.x.length + 1),
+                        column:
+                          fieldObj.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        aggregationFunction:
+                          kibanaToO2AggregationFunction[fieldObj?.type] ?? null,
+                        sort_by: "ASC",
+                      });
+                    } else if (fieldObj.schema == "metric") {
+                      panelData.queries[0].fields.z.push({
+                        label:
+                          fieldObj?.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        alias:
+                          "z_axis_" +
+                          (panelData.queries[0].fields.z.length + 1),
+                        column:
+                          fieldObj.params?.field?.replace(/\./g, "_") ??
+                          timestampField,
+                        aggregationFunction:
+                          kibanaToO2AggregationFunction[fieldObj?.type] ??
+                          "count",
+                        sort_by: "ASC",
+                      });
+                    }
+                  }
+                );
+
+                // use default stream name
+                panelData.queries[0].fields.stream =
+                  defaultStreamName ?? "default";
+
+                // make query based on fields and stream
+                panelData.queries[0].query = sqlchart(panelData, 0);
                 break;
               }
               default: {
@@ -734,9 +868,36 @@ export const convertKibanaToO2 = (kibanaJSON: any) => {
                     panelData?.attributes?.title
                   } -> unsupported panel conversion (skipping)`
                 );
-                break;
+                return;
               }
             }
+            if (panel.gridData) {
+              // set layout
+              panelData.layout = {
+                x: panel?.gridData?.x ?? 0,
+                y: panel?.gridData?.y ?? 0,
+                w: panel?.gridData?.w ?? 24,
+                h: Math.max(3, panel?.gridData?.h ?? 9 - 3),
+                i: panelIndex,
+              };
+            } else {
+              errorAndWarningList.warningList.push(
+                `Warning: ${
+                  panelData?.title ?? panelData?.attributes?.title
+                } -> Can not find panel layout, using default layout`
+              );
+              // set default layout
+              panelData.layout = {
+                x: 0,
+                y: 0,
+                w: 24,
+                h: 6,
+                i: panelIndex,
+              };
+            }
+
+            // push panel into o2Dashboard
+            o2Dashboard.tabs[0].panels.push(panelData);
             break;
           }
           default: {
