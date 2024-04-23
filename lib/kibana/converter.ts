@@ -142,7 +142,7 @@ const extractKibanaData = (kibanaJSON: any, errorAndWarningList: any) => {
       }
       default: {
         if (kibana.type) {
-          // ignore search, map and others types
+          // ignore search, map, links and others types
           errorAndWarningList.errorList.push(
             `Error: chart with type ${
               kibana.type ?? ""
@@ -862,11 +862,7 @@ export const convertKibanaToO2 = (
               }
               default: {
                 errorAndWarningList.errorList.push(
-                  `Error: ${
-                    panelData?.title ??
-                    panelData?.embeddableConfig?.attributes?.title ??
-                    panelData?.attributes?.title
-                  } -> unsupported panel conversion (skipping)`
+                  `Error: ${panelData?.title} -> unsupported panel conversion (skipping)`
                 );
                 return;
               }
@@ -902,11 +898,7 @@ export const convertKibanaToO2 = (
           }
           default: {
             errorAndWarningList.errorList.push(
-              `Error: ${
-                panelData?.title ??
-                panelData?.embeddableConfig?.attributes?.title ??
-                panelData?.attributes?.title
-              } unsupported panel conversion (skipping)`
+              `Error: ${panelData?.title} unsupported panel conversion (skipping)`
             );
           }
         }
