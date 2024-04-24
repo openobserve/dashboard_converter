@@ -7,18 +7,34 @@
           src="/public/img/open_observe_logo.svg"
           @click="goToHome"
         />
+        <q-label class="q-mt-md text-h5">Convert Dashboard</q-label>
         <div class="q-mr-lg q-mt-md">
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
           </q-btn>
-          <q-btn @click="goToWebsite">Website</q-btn>
+          <q-btn @click="goToWebsite"
+            >Website <q-icon name="open_in_new" size="16px" class="q-ml-sm"
+          /></q-btn>
         </div>
       </div>
     </q-header>
+    <div class="flex" style="margin-top: 65px;  border-bottom: 1px solid #ccc">
+      <q-tabs
+        v-model="activePerformanceTab"
+        class="flex justify-start q-ml-lg"
+      >
+        <q-label class="text-h6 q-mr-lg">Import Dashboard from </q-label>
+        <q-tab v-for="tab in tabs" :key="tab.value" :name="tab.value" class="text-primary">
+          {{ tab.label }}
+        </q-tab>
+      </q-tabs>
+    </div>
   </q-layout>
 </template>
 
 <script lang="ts">
+import { defineComponent } from "vue";
+
 export default defineComponent({
   name: "Header",
   setup() {
@@ -36,10 +52,30 @@ export default defineComponent({
     const goToWebsite = () => {
       window.open("https://openobserve.ai/", "_blank");
     };
+
+    const activePerformanceTab = ref("kibana");
+
+    const tabs = [
+      {
+        label: "Kibana",
+        value: "kibana",
+      },
+      {
+        label: "Splunk",
+        value: "splunk",
+      },
+      {
+        label: "Grafana",
+        value: "grafana",
+      },
+    ];
+
     return {
       goToHome,
       goToGithub,
       goToWebsite,
+      tabs,
+      activePerformanceTab,
     };
   },
 });
