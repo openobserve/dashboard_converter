@@ -7,24 +7,29 @@
           src="/public/img/open_observe_logo.svg"
           @click="goToHome"
         />
-        <q-label class="q-mt-md text-h5">Convert Dashboard</q-label>
+        <div class="q-mt-md text-h4">Convert Dashboard</div>
         <div class="q-mr-lg q-mt-md">
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
           </q-btn>
-          <q-btn @click="goToWebsite"
+          <q-btn
+            @click="goToWebsite"
+            outline
+            no-caps
             >Website <q-icon name="open_in_new" size="16px" class="q-ml-sm"
           /></q-btn>
         </div>
       </div>
     </q-header>
-    <div class="flex" style="margin-top: 65px;  border-bottom: 1px solid #ccc">
-      <q-tabs
-        v-model="activePerformanceTab"
-        class="flex justify-start q-ml-lg"
-      >
-        <q-label class="text-h6 q-mr-lg">Import Dashboard from </q-label>
-        <q-tab v-for="tab in tabs" :key="tab.value" :name="tab.value" class="text-primary">
+    <div class="flex" style="margin-top: 65px; border-bottom: 1px solid #ccc">
+      <q-tabs v-model="activePerformanceTab" class="flex justify-start q-ml-lg">
+        <div class="text-h6 q-mr-lg">Import Dashboard from</div>
+        <q-tab
+          v-for="tab in tabs"
+          :key="tab.value"
+          :name="tab.value"
+          class="text-primary"
+        >
           {{ tab.label }}
         </q-tab>
       </q-tabs>
@@ -60,14 +65,14 @@ export default defineComponent({
         label: "Kibana",
         value: "kibana",
       },
-      {
-        label: "Splunk",
-        value: "splunk",
-      },
-      {
-        label: "Grafana",
-        value: "grafana",
-      },
+      // {
+      //   label: "Splunk",
+      //   value: "splunk",
+      // },
+      // {
+      //   label: "Grafana",
+      //   value: "grafana",
+      // },
     ];
 
     return {
