@@ -12,28 +12,32 @@
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
           </q-btn>
-          <q-btn
-            @click="goToWebsite"
-            outline
-            no-caps
+          <q-btn @click="goToWebsite" outline no-caps
             >Website <q-icon name="open_in_new" size="16px" class="q-ml-sm"
           /></q-btn>
         </div>
       </div>
-    </q-header>
-    <div class="flex" style="margin-top: 65px; border-bottom: 1px solid #ccc">
-      <q-tabs v-model="activePerformanceTab" class="flex justify-start q-ml-lg">
-        <div class="text-h6 q-mr-lg">Import Dashboard from</div>
-        <q-tab
-          v-for="tab in tabs"
-          :key="tab.value"
-          :name="tab.value"
-          class="text-primary"
+      <q-separator style="border-bottom: 1px solid #ccc" />
+      <div
+        class="flex"
+        style="border-bottom: 1px solid #ccc; position: sticky; top: 0"
+      >
+        <q-tabs
+          v-model="activePerformanceTab"
+          class="flex justify-start q-ml-lg"
         >
-          {{ tab.label }}
-        </q-tab>
-      </q-tabs>
-    </div>
+          <div class="text-h6 q-mr-lg">Import Dashboard from</div>
+          <q-tab
+            v-for="tab in tabs"
+            :key="tab.value"
+            :name="tab.value"
+            class="text-primary"
+          >
+            {{ tab.label }}
+          </q-tab>
+        </q-tabs>
+      </div>
+    </q-header>
   </q-layout>
 </template>
 
