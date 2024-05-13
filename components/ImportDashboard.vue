@@ -5,14 +5,14 @@
       <!-- File Import Section -->
       <q-form @submit.prevent="handleFileUpload">
         <div class="q-my-md">Import Dashboard from exported JSON file</div>
-        <div class="tw-w-3/5">
+        <div class="tw-w-4/5">
           <!-- File Input -->
           <q-file
             filled
             bottom-slots
             v-model="file"
             label="Drop JSON file here"
-            accept=".json, .ndjson"
+            accept=".ndjson"
             multiple
             :rules="[
               (val) => (val && val.length > 0) || 'Please select a file',
@@ -33,7 +33,7 @@
 
           <!-- Import Button -->
           <q-btn
-            label="Import"
+            label="Convert"
             color="secondary"
             class="q-my-md text-bold no-border"
             padding="sm xl"
@@ -45,10 +45,10 @@
       </q-form>
 
       <!-- URL Import Section -->
-      <q-separator class="q-my-sm tw-w-3/5" />
+      <q-separator class="q-my-sm tw-w-4/5" />
       <q-form @submit.prevent="handleURLImport">
         <div class="q-my-md">Import Dashboard from URL</div>
-        <div class="tw-w-3/5">
+        <div class="tw-w-4/5">
           <!-- URL Input -->
           <q-input
             v-model="url"
@@ -62,7 +62,7 @@
 
           <!-- Import Button -->
           <q-btn
-            label="Import"
+            label="Convert"
             color="secondary"
             class="q-my-md text-bold no-border"
             padding="sm xl"
@@ -74,10 +74,10 @@
       </q-form>
 
       <!-- JSON String Import Section -->
-      <q-separator class="q-my-sm tw-w-3/5" />
+      <q-separator class="q-my-sm tw-w-4/5" />
       <q-form @submit.prevent="handleNDJSONPaste">
         <div class="q-my-md">Import Dashboard from JSON string</div>
-        <div class="tw-w-3/5">
+        <div class="tw-w-4/5">
           <!-- JSON Input -->
           <q-input
             v-model="ndjson"
@@ -92,7 +92,7 @@
 
           <!-- Import Button -->
           <q-btn
-            label="Import"
+            label="Convert"
             color="secondary"
             class="q-my-md text-bold no-border"
             padding="sm xl"
@@ -106,24 +106,27 @@
     <!-- Right Side -->
     <div class="tw-flex:1 q-ml-lg tw-w-1/2">
       <div class="q-mx-md q-my-md tw-h-full">
-        <!-- style="max-height: 25%; overflow-y: auto" -->
         <div class="q-my-md tw-max-h-72 tw-overflow-y-auto">
-          <div class="tw-sticky tw-top-0 tw-bg-white">
-            <h6>Errors</h6>
-          </div>
           <div v-if="conversionErrors.length">
+            <div class="tw-sticky tw-top-0 tw-bg-white">
+              <h6>Errors</h6>
+            </div>
             <div v-for="error in conversionErrors" :key="error">
-              <q-banner inline-actions rounded>{{ error }}</q-banner>
+              <q-banner style="min-height: 0px" inline-actions rounded>{{
+                error
+              }}</q-banner>
             </div>
           </div>
         </div>
         <div class="q-my-md tw-max-h-64 tw-overflow-y-auto">
-          <div class="tw-sticky tw-top-0 tw-bg-white">
-            <h6>Warnings</h6>
-          </div>
           <div v-if="conversionWarnings.length">
+            <div class="tw-sticky tw-top-0 tw-bg-white">
+              <h6>Warnings</h6>
+            </div>
             <div v-for="warning in conversionWarnings" :key="warning">
-              <q-banner inline-actions rounded>{{ warning }}</q-banner>
+              <q-banner style="min-height: 0px" inline-actions rounded>{{
+                warning
+              }}</q-banner>
             </div>
           </div>
         </div>

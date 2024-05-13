@@ -1,6 +1,6 @@
 <template>
   <!-- <div class="home-container"> -->
-    <ImportDashboard />
+    <!-- <ImportDashboard /> -->
       <!-- <div class="tab-buttons">
         <button
           class="tab-button"

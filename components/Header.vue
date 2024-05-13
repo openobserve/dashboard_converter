@@ -7,7 +7,7 @@
           src="/public/img/open_observe_logo.svg"
           @click="goToHome"
         />
-        <div class="q-mt-md text-h4">Convert Dashboard</div>
+        <div class="q-mt-md text-h6">Convert Dashboard</div>
         <div class="q-mr-lg q-mt-md">
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
@@ -39,13 +39,18 @@
       </div>
     </q-header>
   </q-layout>
+  <ImportDashboard />
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import ImportDashboard from "./ImportDashboard.vue";
 
 export default defineComponent({
   name: "Header",
+  components: {
+    ImportDashboard,
+  },
   setup() {
     const goToHome = () => {
       window.location.href = "/";
