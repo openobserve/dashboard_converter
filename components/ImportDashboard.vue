@@ -1,13 +1,11 @@
-for error message and warning also want overyflow-y auto with 15 rows
 <template>
-  <div class="q-mx-md q-my-md flex flex-row">
+  <div class="q-mx-md tw-flex tw-flex-row tw-mt-16">
     <!-- Left Side: Imports -->
-    <div class="q-mr-md flex:1" style="width: 400px">
+    <div class="q-mr-md tw-flex:1 tw-w-1/2">
       <!-- File Import Section -->
-      <q-separator class="q-my-sm" />
       <q-form @submit.prevent="handleFileUpload">
         <div class="q-my-md">Import Dashboard from exported JSON file</div>
-        <div style="width: 400px">
+        <div class="tw-w-3/5">
           <!-- File Input -->
           <q-file
             filled
@@ -44,10 +42,10 @@ for error message and warning also want overyflow-y auto with 15 rows
       </q-form>
 
       <!-- URL Import Section -->
-      <q-separator class="q-my-sm" />
+      <q-separator class="q-my-sm tw-w-3/5" />
       <q-form @submit.prevent="handleURLImport">
         <div class="q-my-md">Import Dashboard from URL</div>
-        <div style="width: 400px">
+        <div class="tw-w-3/5">
           <!-- URL Input -->
           <q-input
             v-model="url"
@@ -72,10 +70,10 @@ for error message and warning also want overyflow-y auto with 15 rows
       </q-form>
 
       <!-- JSON String Import Section -->
-      <q-separator class="q-my-sm" />
+      <q-separator class="q-my-sm tw-w-3/5" />
       <q-form @submit.prevent="handleNDJSONPaste">
         <div class="q-my-md">Import Dashboard from JSON string</div>
-        <div style="width: 400px">
+        <div class="tw-w-3/5">
           <!-- JSON Input -->
           <q-input
             v-model="ndjson"
@@ -100,36 +98,36 @@ for error message and warning also want overyflow-y auto with 15 rows
         </div>
       </q-form>
     </div>
-
-    <div class="flex:1 q-ml-lg">
-      <div class="q-mx-md q-my-md">
-        <div>
+    <!-- Right Side -->
+    <div class="tw-flex:1 q-ml-lg tw-w-1/2">
+      <div class="q-mx-md q-my-md tw-h-full">
+        <!-- style="max-height: 25%; overflow-y: auto" -->
+        <div class="q-my-md tw-max-h-72 tw-overflow-y-auto">
+          <div class="tw-sticky tw-top-0 tw-bg-white">
+            <h6>Errors</h6>
+          </div>
           <div v-if="conversionErrors.length">
-            <h5>Errors</h5>
             <div v-for="error in conversionErrors" :key="error">
-              <q-banner inline-actions rounded class="bg-red text-white">{{
-                error
-              }}</q-banner>
+              <q-banner inline-actions rounded>{{ error }}</q-banner>
             </div>
           </div>
+        </div>
+        <div class="q-my-md tw-max-h-64 tw-overflow-y-auto">
+          <div class="tw-sticky tw-top-0 tw-bg-white">
+            <h6>Warnings</h6>
+          </div>
           <div v-if="conversionWarnings.length">
-            <h5>Warnings</h5>
             <div v-for="warning in conversionWarnings" :key="warning">
-              <q-banner inline-actions rounded class="bg-yellow text-white">{{
-                warning
-              }}</q-banner>
+              <q-banner inline-actions rounded>{{ warning }}</q-banner>
             </div>
           </div>
         </div>
 
-        <div
-          class="q-my-md"
-          style="max-height: 20em; overflow-y: auto; width: 400px"
-        >
-          <div style="position: sticky; top: 0; background-color: white">
-            <h5>Converted Dashboard</h5>
+        <div class="q-my-md tw-max-h-96 tw-overflow-y-auto">
+          <div class="tw-sticky tw-top-0 tw-bg-white">
+            <h6>Converted Dashboard</h6>
           </div>
-          <pre>{{ o2json || "No content available" }}</pre>
+          <q-input v-model="o2json" filled type="textarea" />
         </div>
 
         <div class="q-mx-md">
