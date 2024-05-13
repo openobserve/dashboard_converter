@@ -1,11 +1,11 @@
 <template>
   <div class="q-mx-md tw-flex tw-flex-row tw-mt-16">
     <!-- Left Side: Imports -->
-    <div class="q-mr-md tw-flex:1 tw-w-1/2">
+    <div class="q-mr-md tw-flex:1 tw-w-1/3">
       <!-- File Import Section -->
       <q-form @submit.prevent="handleFileUpload">
         <div class="q-my-md">Import Dashboard from exported JSON file</div>
-        <div class="tw-w-4/5">
+        <div class="">
           <!-- File Input -->
           <q-file
             filled
@@ -45,10 +45,10 @@
       </q-form>
 
       <!-- URL Import Section -->
-      <q-separator class="q-my-sm tw-w-4/5" />
+      <q-separator class="q-my-sm " />
       <q-form @submit.prevent="handleURLImport">
         <div class="q-my-md">Import Dashboard from URL</div>
-        <div class="tw-w-4/5">
+        <div class="">
           <!-- URL Input -->
           <q-input
             v-model="url"
@@ -74,10 +74,10 @@
       </q-form>
 
       <!-- JSON String Import Section -->
-      <q-separator class="q-my-sm tw-w-4/5" />
+      <q-separator class="q-my-sm " />
       <q-form @submit.prevent="handleNDJSONPaste">
         <div class="q-my-md">Import Dashboard from JSON string</div>
-        <div class="tw-w-4/5">
+        <div class="">
           <!-- JSON Input -->
           <q-input
             v-model="ndjson"
@@ -104,36 +104,36 @@
       </q-form>
     </div>
     <!-- Right Side -->
-    <div class="tw-flex:1 q-ml-lg tw-w-1/2">
+    <div class="tw-flex:1 q-ml-lg tw-w-2/3">
       <div class="q-mx-md q-my-md tw-h-full">
         <div class="q-my-md tw-max-h-72 tw-overflow-y-auto">
-          <div v-if="conversionErrors.length">
+          <div v-if="conversionErrors.length" >
             <div class="tw-sticky tw-top-0 tw-bg-white">
-              <h6>Errors</h6>
+              <div>Errors</div>
             </div>
             <div v-for="error in conversionErrors" :key="error">
-              <q-banner style="min-height: 0px" inline-actions rounded>{{
+              <div style="min-height: 0px" inline-actions rounded class="tw-text-red-500">{{
                 error
-              }}</q-banner>
+              }}</div>
             </div>
           </div>
         </div>
         <div class="q-my-md tw-max-h-64 tw-overflow-y-auto">
           <div v-if="conversionWarnings.length">
             <div class="tw-sticky tw-top-0 tw-bg-white">
-              <h6>Warnings</h6>
+              <div>Warnings</div>
             </div>
             <div v-for="warning in conversionWarnings" :key="warning">
-              <q-banner style="min-height: 0px" inline-actions rounded>{{
+              <div style="min-height: 0px" inline-actions rounded class="tw-text-yellow-500">{{
                 warning
-              }}</q-banner>
+              }}</div>
             </div>
           </div>
         </div>
 
         <div class="q-my-md tw-max-h-96 tw-overflow-y-auto">
           <div class="tw-sticky tw-top-0 tw-bg-white">
-            <h6>Converted Dashboard</h6>
+            <div>Converted Dashboard</div>
           </div>
           <q-input v-model="o2json" filled type="textarea" />
         </div>

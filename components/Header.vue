@@ -26,7 +26,7 @@
           v-model="activePerformanceTab"
           class="flex justify-start q-ml-lg"
         >
-          <div class="text-h6 q-mr-lg">Import Dashboard from</div>
+          <div class="tw-text-base q-mr-lg">Import Dashboard from</div>
           <q-tab
             v-for="tab in tabs"
             :key="tab.value"
