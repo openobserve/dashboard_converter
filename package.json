@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.0",
     "@quasar/extras": "^1.16.11",
     "nuxt": "^3.11.2",
     "quasar": "^2.15.4",
