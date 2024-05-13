@@ -14,6 +14,9 @@
             label="Drop JSON file here"
             accept=".json, .ndjson"
             multiple
+            :rules="[
+              (val) => (val && val.length > 0) || 'Please select a file',
+            ]"
           >
             <template v-slot:prepend>
               <q-icon name="cloud_upload" />
@@ -25,7 +28,7 @@
                 @click="file = null"
               />
             </template>
-            <template v-slot:hint>.json or .ndjson files only</template>
+            <template v-slot:hint>.ndjson files only</template>
           </q-file>
 
           <!-- Import Button -->
@@ -54,6 +57,7 @@
             dense
             color="secondary"
             :disable="isLoading"
+            :rules="[(val) => (val && val.length > 0) || 'Please enter a URL']"
           />
 
           <!-- Import Button -->
@@ -83,6 +87,7 @@
             type="textarea"
             color="secondary"
             :disable="isLoading"
+            :rules="[(val) => (val && val.length > 0) || 'Please enter JSON']"
           />
 
           <!-- Import Button -->
@@ -170,8 +175,9 @@ export default {
     const conversionErrors = ref([]);
 
     const handleFileUpload = (event) => {
-      // get first file
-      file.value = event.target.files[0];
+      if (!file.value) {
+        return;
+      }
 
       // handle file import here
       // Create a new FileReader instance
@@ -208,7 +214,7 @@ export default {
       };
 
       // Read the file as text
-      reader.readAsText(file.value);
+      reader.readAsText(file.value[0]);
     };
 
     const handleURLImport = () => {
