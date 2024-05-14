@@ -113,7 +113,7 @@
         <q-btn
           label="Convert"
           color="secondary"
-          class="q-my-md text-bold no-border"
+          class="q-my-md text-bold no-border q-mx-md"
           padding="sm xl"
           type="submit"
           no-caps
