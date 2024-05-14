@@ -120,11 +120,25 @@
           </q-form>
         </q-tab-panel>
       </q-tab-panels>
+      <div>
+        <div class="q-my-md q-ml-md">Config Value</div>
+        <div class="q-ma-md">
+          Timestamp Field:
+          <q-input class="q-mt-sm" filled dense label="Timestamp Field" />
+        </div>
+        <div class="q-ma-md">
+          Default Stream Name:
+          <q-input class="q-mt-sm" filled dense label="Default Stream Name" />
+        </div>
+      </div>
     </div>
     <!-- Right Side -->
     <div class="tw-flex:1 q-ml-lg tw-w-2/3">
       <div class="q-mx-md q-my-md tw-h-full">
-        <div class="q-my-md tw-max-h-72 tw-overflow-y-auto">
+        <div
+          class="q-my-md tw-overflow-y-auto"
+          style="max-height: calc(100vh - 57px)"
+        >
           <div v-if="conversionErrors.length">
             <div class="tw-sticky tw-top-0 tw-bg-white">
               <div>Errors</div>
@@ -141,7 +155,10 @@
             </div>
           </div>
         </div>
-        <div class="q-my-md tw-max-h-64 tw-overflow-y-auto">
+        <div
+          class="q-my-md tw-overflow-y-auto"
+          style="max-height: calc(100vh - 57px)"
+        >
           <div v-if="conversionWarnings.length">
             <div class="tw-sticky tw-top-0 tw-bg-white">
               <div>Warnings</div>
@@ -159,7 +176,10 @@
           </div>
         </div>
 
-        <div class="q-my-md tw-max-h-96 tw-overflow-y-auto">
+        <div
+          class="q-my-md tw-overflow-y-auto"
+          style="max-height: calc(100vh - 57px)"
+        >
           <div class="tw-sticky tw-top-0 tw-bg-white">
             <div>Converted Dashboard</div>
           </div>
