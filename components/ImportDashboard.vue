@@ -4,9 +4,9 @@
     <div class="q-mr-md tw-flex:1 tw-w-1/3">
       <!-- Tabs -->
       <q-tabs v-model="activeTab" dense align="justify" class="q-my-md">
-        <q-tab name="file" label="File" />
-        <q-tab name="url" label="URL" />
-        <q-tab name="json" label="JSON" />
+        <q-tab no-caps name="file" label="File" />
+        <q-tab no-caps name="url" label="URL" />
+        <q-tab no-caps name="json" label="Paste Data" />
       </q-tabs>
 
       <!-- Tab Contents -->
@@ -14,14 +14,14 @@
         <!-- File Import Section -->
         <q-tab-panel name="file">
           <q-form @submit.prevent="handleFileUpload">
-            <div class="q-my-md">Import Dashboard from exported JSON file</div>
+            <div class="q-my-md">Import Dashboard from exported NdJSON file</div>
             <div class="">
               <!-- File Input -->
               <q-file
                 filled
                 bottom-slots
                 v-model="file"
-                label="Drop JSON file here"
+                label="Drop NdJSON file here"
                 accept=".ndjson"
                 multiple
                 :rules="[
@@ -68,12 +68,12 @@
         <!-- JSON String Import Section -->
         <q-tab-panel name="json">
           <q-form @submit.prevent="handleNDJSONPaste">
-            <div class="q-my-md">Import Dashboard from JSON string</div>
+            <div class="q-my-md">Import Dashboard from NdJSON string</div>
             <div class="">
               <!-- JSON Input -->
               <q-input
                 v-model="ndjson"
-                label="Enter JSON string"
+                label="Enter NdJSON string"
                 filled
                 dense
                 type="textarea"
