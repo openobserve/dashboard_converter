@@ -40,17 +40,6 @@
                 </template>
                 <template v-slot:hint>.ndjson files only</template>
               </q-file>
-
-              <!-- Import Button -->
-              <q-btn
-                label="Convert"
-                color="secondary"
-                class="q-my-md text-bold no-border"
-                padding="sm xl"
-                type="submit"
-                no-caps
-                @click="handleFileUpload"
-              />
             </div>
           </q-form>
         </q-tab-panel>
@@ -71,17 +60,6 @@
                 :rules="[
                   (val) => (val && val.length > 0) || 'Please enter a URL',
                 ]"
-              />
-
-              <!-- Import Button -->
-              <q-btn
-                label="Convert"
-                color="secondary"
-                class="q-my-md text-bold no-border"
-                padding="sm xl"
-                type="submit"
-                no-caps
-                @click="handleURLImport"
               />
             </div>
           </q-form>
@@ -105,17 +83,6 @@
                   (val) => (val && val.length > 0) || 'Please enter JSON',
                 ]"
               />
-
-              <!-- Import Button -->
-              <q-btn
-                label="Convert"
-                color="secondary"
-                class="q-my-md text-bold no-border"
-                padding="sm xl"
-                type="submit"
-                no-caps
-                @click="handleNDJSONPaste"
-              />
             </div>
           </q-form>
         </q-tab-panel>
@@ -123,114 +90,102 @@
       <div>
         <div class="q-my-md q-ml-md">Config Value</div>
         <div class="q-ma-md">
-          Timestamp Field:
           <q-input
             v-model="timestampField"
             class="q-mt-sm"
             filled
             dense
-            label="Timestamp Field"
-          />
-          <q-btn
-            label="Convert"
-            color="secondary"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            no-caps
-            @click="convertTimestampField"
-          />
+            label="Default Timestamp Field"
+            :hint="'Default Timestamp name to be used '"
+          >
+          </q-input>
         </div>
         <div class="q-ma-md">
-          Default Stream Name:
           <q-input
             v-model="defaultStreamName"
             class="q-mt-sm"
             filled
             dense
             label="Default Stream Name"
-          />
-          <q-btn
-            label="Convert"
-            color="secondary"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            no-caps
-            @click="convertDefaultStreamName"
+            :hint="'Default stream to be used when stream not found for the panel'"
           />
         </div>
+        <q-btn
+          label="Convert"
+          color="secondary"
+          class="q-my-md text-bold no-border"
+          padding="sm xl"
+          type="submit"
+          no-caps
+          @click="convertDashboardData"
+        />
       </div>
     </div>
     <!-- Right Side -->
     <div class="tw-flex:1 q-ml-lg tw-w-2/3">
       <div class="q-mx-md q-my-md tw-h-full">
-        <div
-          class="q-my-md tw-overflow-y-auto"
-          style="max-height: calc(100vh - 57px)"
-        >
-          <div v-if="conversionErrors.length">
-            <div class="tw-sticky tw-top-0 tw-bg-white">
-              <div>Errors</div>
-            </div>
-            <div v-for="error in conversionErrors" :key="error">
-              <div
-                style="min-height: 0px"
-                inline-actions
-                rounded
-                class="tw-text-red-500"
-              >
-                {{ error }}
+        <div class="q-my-md tw-overflow-y-auto">
+          <div>
+            <div v-if="conversionErrors.length">
+              <div class="tw-sticky tw-top-0 tw-bg-white">
+                <div>Errors</div>
+              </div>
+              <div v-for="error in conversionErrors" :key="error">
+                <div
+                  style="min-height: 0px"
+                  inline-actions
+                  rounded
+                  class="tw-text-red-500"
+                >
+                  {{ error }}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div
-          class="q-my-md tw-overflow-y-auto"
-          style="max-height: calc(100vh - 57px)"
-        >
-          <div v-if="conversionWarnings.length">
-            <div class="tw-sticky tw-top-0 tw-bg-white">
-              <div>Warnings</div>
-            </div>
-            <div v-for="warning in conversionWarnings" :key="warning">
-              <div
-                style="min-height: 0px"
-                inline-actions
-                rounded
-                class="tw-text-yellow-500"
-              >
-                {{ warning }}
+          <div class="q-my-md tw-overflow-y-auto">
+            <div v-if="conversionWarnings.length">
+              <div class="tw-sticky tw-top-0 tw-bg-white">
+                <div>Warnings</div>
+              </div>
+              <div v-for="warning in conversionWarnings" :key="warning">
+                <div
+                  style="min-height: 0px"
+                  inline-actions
+                  rounded
+                  class="tw-text-yellow-500"
+                >
+                  {{ warning }}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div
-          class="q-my-md tw-overflow-y-auto"
-          style="max-height: calc(100vh - 57px)"
+          class="q-my-md tw-flex tw-flex-col tw-overflow-y-auto tw-max-h-[calc(calc(100vh-110px)/2)]"
         >
           <div class="tw-sticky tw-top-0 tw-bg-white">
             <div>Converted Dashboard</div>
           </div>
-          <q-input v-model="o2json" filled type="textarea" />
-        </div>
-
-        <div class="q-mx-md">
-          <q-btn
-            label="Download JSON"
-            color="secondary"
-            @click="downloadO2JSON"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            no-caps
-          />
-          <q-btn
-            label="Copy to Clipboard"
-            color="secondary"
-            @click="copyToClipboard"
-            class="q-my-md q-ml-sm text-bold no-border"
-            padding="sm xl"
-            no-caps
-          />
+          <q-input class="tw-flex-1" v-model="o2json" filled type="textarea" />
+          <div class="q-mx-md">
+            <q-btn
+              label="Download JSON"
+              color="secondary"
+              @click="downloadO2JSON"
+              class="q-my-md text-bold no-border"
+              padding="sm xl"
+              no-caps
+            />
+            <q-btn
+              label="Copy to Clipboard"
+              color="secondary"
+              @click="copyToClipboard"
+              class="q-my-md q-ml-sm text-bold no-border"
+              padding="sm xl"
+              no-caps
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -359,11 +314,14 @@ export default {
     const downloadO2JSON = () => {
       // download o2json.value
       // prepare json and download via a click
+      const o2jsonObject = JSON.parse(o2json.value);
+
+      const title = o2jsonObject.title;
       const data =
         "data:text/json;charset=utf-8," + encodeURIComponent(o2json.value);
       const htmlA = document.createElement("a");
       htmlA.setAttribute("href", data);
-      const fileName = "O2_Dashboard";
+      const fileName = `${title}_O2_Dashboard`;
       htmlA.setAttribute("download", fileName + ".json");
       htmlA.click();
     };
@@ -371,27 +329,15 @@ export default {
     const copyToClipboard = () => {
       navigator.clipboard.writeText(o2json.value);
     };
-
-    const convertTimestampField = () => {
+    const convertDashboardData = () => {
       if (activeTab.value === "file") {
         handleFileUpload();
       } else if (activeTab.value === "url") {
         handleURLImport();
-      } else if (activeTab.value === "ndjson") {
+      } else if (activeTab.value === "json") {
         handleNDJSONPaste();
       }
     };
-
-    const convertDefaultStreamName = () => {
-      if (activeTab.value === "file") {
-        handleFileUpload();
-      } else if (activeTab.value === "url") {
-        handleURLImport();
-      } else if (activeTab.value === "ndjson") {
-        handleNDJSONPaste();
-      }
-    };
-
     return {
       file,
       url,
@@ -409,8 +355,7 @@ export default {
       activeTab,
       timestampField,
       defaultStreamName,
-      convertTimestampField,
-      convertDefaultStreamName,
+      convertDashboardData,
     };
   },
 };
