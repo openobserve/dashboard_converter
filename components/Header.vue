@@ -12,7 +12,7 @@
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
           </q-btn>
-          <q-btn @click="goToWebsite" outline no-caps
+          <q-btn @click="goToWebsite" no-caps
             >Website <q-icon name="open_in_new" size="16px" class="q-ml-sm"
           /></q-btn>
         </div>
