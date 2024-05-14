@@ -170,6 +170,7 @@
           <q-input class="tw-flex-1" v-model="o2json" filled type="textarea" />
           <div class="q-mx-md">
             <q-btn
+              v-if="o2json"
               label="Download JSON"
               color="secondary"
               @click="downloadO2JSON"
@@ -178,6 +179,7 @@
               no-caps
             />
             <q-btn
+              v-if="o2json"
               label="Copy to Clipboard"
               color="secondary"
               @click="copyToClipboard"
