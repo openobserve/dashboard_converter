@@ -124,7 +124,13 @@
         <div class="q-my-md q-ml-md">Config Value</div>
         <div class="q-ma-md">
           Timestamp Field:
-          <q-input v-model="timestampField" class="q-mt-sm" filled dense label="Timestamp Field" />
+          <q-input
+            v-model="timestampField"
+            class="q-mt-sm"
+            filled
+            dense
+            label="Timestamp Field"
+          />
           <q-btn
             label="Convert"
             color="secondary"
@@ -136,7 +142,13 @@
         </div>
         <div class="q-ma-md">
           Default Stream Name:
-          <q-input v-model="defaultStreamName" class="q-mt-sm" filled dense label="Default Stream Name" />
+          <q-input
+            v-model="defaultStreamName"
+            class="q-mt-sm"
+            filled
+            dense
+            label="Default Stream Name"
+          />
           <q-btn
             label="Convert"
             color="secondary"
@@ -361,27 +373,23 @@ export default {
     };
 
     const convertTimestampField = () => {
-      const jsonArray = []; // Assuming you have jsonArray available
-      const o2ConversionRes = convertKibanaToO2(
-        jsonArray,
-        timestampField.value,
-        defaultStreamName.value
-      );
-      o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-      conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
-      conversionWarnings.value = o2ConversionRes.errorAndWarningList.warningList;
+      if (activeTab.value === "file") {
+        handleFileUpload();
+      } else if (activeTab.value === "url") {
+        handleURLImport();
+      } else if (activeTab.value === "ndjson") {
+        handleNDJSONPaste();
+      }
     };
 
     const convertDefaultStreamName = () => {
-      const jsonArray = []; // Assuming you have jsonArray available
-      const o2ConversionRes = convertKibanaToO2(
-        jsonArray,
-        timestampField.value,
-        defaultStreamName.value
-      );
-      o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-      conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
-      conversionWarnings.value = o2ConversionRes.errorAndWarningList.warningList;
+      if (activeTab.value === "file") {
+        handleFileUpload();
+      } else if (activeTab.value === "url") {
+        handleURLImport();
+      } else if (activeTab.value === "ndjson") {
+        handleNDJSONPaste();
+      }
     };
 
     return {
