@@ -2,119 +2,142 @@
   <div class="q-mx-md tw-flex tw-flex-row tw-mt-16">
     <!-- Left Side: Imports -->
     <div class="q-mr-md tw-flex:1 tw-w-1/3">
-      <!-- File Import Section -->
-      <q-form @submit.prevent="handleFileUpload">
-        <div class="q-my-md">Import Dashboard from exported JSON file</div>
-        <div class="">
-          <!-- File Input -->
-          <q-file
-            filled
-            bottom-slots
-            v-model="file"
-            label="Drop JSON file here"
-            accept=".ndjson"
-            multiple
-            :rules="[
-              (val) => (val && val.length > 0) || 'Please select a file',
-            ]"
-          >
-            <template v-slot:prepend>
-              <q-icon name="cloud_upload" />
-            </template>
-            <template v-slot:append>
-              <q-icon
-                name="close"
-                class="cursor-pointer"
-                @click="file = null"
+      <!-- Tabs -->
+      <q-tabs v-model="activeTab" dense align="justify" class="q-my-md">
+        <q-tab name="file" label="File" />
+        <q-tab name="url" label="URL" />
+        <q-tab name="json" label="JSON" />
+      </q-tabs>
+
+      <!-- Tab Contents -->
+      <q-tab-panels v-model="activeTab">
+        <!-- File Import Section -->
+        <q-tab-panel name="file">
+          <q-form @submit.prevent="handleFileUpload">
+            <div class="q-my-md">Import Dashboard from exported JSON file</div>
+            <div class="">
+              <!-- File Input -->
+              <q-file
+                filled
+                bottom-slots
+                v-model="file"
+                label="Drop JSON file here"
+                accept=".ndjson"
+                multiple
+                :rules="[
+                  (val) => (val && val.length > 0) || 'Please select a file',
+                ]"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="cloud_upload" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    name="close"
+                    class="cursor-pointer"
+                    @click="file = null"
+                  />
+                </template>
+                <template v-slot:hint>.ndjson files only</template>
+              </q-file>
+
+              <!-- Import Button -->
+              <q-btn
+                label="Convert"
+                color="secondary"
+                class="q-my-md text-bold no-border"
+                padding="sm xl"
+                type="submit"
+                no-caps
+                @click="handleFileUpload"
               />
-            </template>
-            <template v-slot:hint>.ndjson files only</template>
-          </q-file>
+            </div>
+          </q-form>
+        </q-tab-panel>
 
-          <!-- Import Button -->
-          <q-btn
-            label="Convert"
-            color="secondary"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            type="submit"
-            no-caps
-            @click="handleFileUpload"
-          />
-        </div>
-      </q-form>
+        <!-- URL Import Section -->
+        <q-tab-panel name="url">
+          <q-form @submit.prevent="handleURLImport">
+            <div class="q-my-md">Import Dashboard from URL</div>
+            <div class="">
+              <!-- URL Input -->
+              <q-input
+                v-model="url"
+                label="Enter URL"
+                filled
+                dense
+                color="secondary"
+                :disable="isLoading"
+                :rules="[
+                  (val) => (val && val.length > 0) || 'Please enter a URL',
+                ]"
+              />
 
-      <!-- URL Import Section -->
-      <q-separator class="q-my-sm " />
-      <q-form @submit.prevent="handleURLImport">
-        <div class="q-my-md">Import Dashboard from URL</div>
-        <div class="">
-          <!-- URL Input -->
-          <q-input
-            v-model="url"
-            label="Enter URL"
-            filled
-            dense
-            color="secondary"
-            :disable="isLoading"
-            :rules="[(val) => (val && val.length > 0) || 'Please enter a URL']"
-          />
+              <!-- Import Button -->
+              <q-btn
+                label="Convert"
+                color="secondary"
+                class="q-my-md text-bold no-border"
+                padding="sm xl"
+                type="submit"
+                no-caps
+                @click="handleURLImport"
+              />
+            </div>
+          </q-form>
+        </q-tab-panel>
 
-          <!-- Import Button -->
-          <q-btn
-            label="Convert"
-            color="secondary"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            type="submit"
-            no-caps
-            @click="handleURLImport"
-          />
-        </div>
-      </q-form>
+        <!-- JSON String Import Section -->
+        <q-tab-panel name="json">
+          <q-form @submit.prevent="handleNDJSONPaste">
+            <div class="q-my-md">Import Dashboard from JSON string</div>
+            <div class="">
+              <!-- JSON Input -->
+              <q-input
+                v-model="ndjson"
+                label="Enter JSON string"
+                filled
+                dense
+                type="textarea"
+                color="secondary"
+                :disable="isLoading"
+                :rules="[
+                  (val) => (val && val.length > 0) || 'Please enter JSON',
+                ]"
+              />
 
-      <!-- JSON String Import Section -->
-      <q-separator class="q-my-sm " />
-      <q-form @submit.prevent="handleNDJSONPaste">
-        <div class="q-my-md">Import Dashboard from JSON string</div>
-        <div class="">
-          <!-- JSON Input -->
-          <q-input
-            v-model="ndjson"
-            label="Enter JSON string"
-            filled
-            dense
-            type="textarea"
-            color="secondary"
-            :disable="isLoading"
-            :rules="[(val) => (val && val.length > 0) || 'Please enter JSON']"
-          />
-
-          <!-- Import Button -->
-          <q-btn
-            label="Convert"
-            color="secondary"
-            class="q-my-md text-bold no-border"
-            padding="sm xl"
-            type="submit"
-            no-caps
-            @click="handleNDJSONPaste"
-          />
-        </div>
-      </q-form>
+              <!-- Import Button -->
+              <q-btn
+                label="Convert"
+                color="secondary"
+                class="q-my-md text-bold no-border"
+                padding="sm xl"
+                type="submit"
+                no-caps
+                @click="handleNDJSONPaste"
+              />
+            </div>
+          </q-form>
+        </q-tab-panel>
+      </q-tab-panels>
     </div>
     <!-- Right Side -->
     <div class="tw-flex:1 q-ml-lg tw-w-2/3">
       <div class="q-mx-md q-my-md tw-h-full">
         <div class="q-my-md tw-max-h-72 tw-overflow-y-auto">
-          <div v-if="conversionErrors.length" >
+          <div v-if="conversionErrors.length">
             <div class="tw-sticky tw-top-0 tw-bg-white">
               <div>Errors</div>
             </div>
             <div v-for="error in conversionErrors" :key="error">
-              <div style="min-height: 0px" inline-actions rounded class="tw-text-red-500">{{
-                error
-              }}</div>
+              <div
+                style="min-height: 0px"
+                inline-actions
+                rounded
+                class="tw-text-red-500"
+              >
+                {{ error }}
+              </div>
             </div>
           </div>
         </div>
@@ -124,9 +147,14 @@
               <div>Warnings</div>
             </div>
             <div v-for="warning in conversionWarnings" :key="warning">
-              <div style="min-height: 0px" inline-actions rounded class="tw-text-yellow-500">{{
-                warning
-              }}</div>
+              <div
+                style="min-height: 0px"
+                inline-actions
+                rounded
+                class="tw-text-yellow-500"
+              >
+                {{ warning }}
+              </div>
             </div>
           </div>
         </div>
@@ -176,6 +204,7 @@ export default {
     const o2json = ref(null);
     const conversionWarnings = ref([]);
     const conversionErrors = ref([]);
+    const activeTab = ref("file");
 
     const handleFileUpload = (event) => {
       if (!file.value) {
@@ -307,6 +336,7 @@ export default {
       copyToClipboard,
       conversionWarnings,
       conversionErrors,
+      activeTab,
     };
   },
 };
