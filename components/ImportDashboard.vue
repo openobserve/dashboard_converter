@@ -124,11 +124,27 @@
         <div class="q-my-md q-ml-md">Config Value</div>
         <div class="q-ma-md">
           Timestamp Field:
-          <q-input class="q-mt-sm" filled dense label="Timestamp Field" />
+          <q-input v-model="timestampField" class="q-mt-sm" filled dense label="Timestamp Field" />
+          <q-btn
+            label="Convert"
+            color="secondary"
+            class="q-my-md text-bold no-border"
+            padding="sm xl"
+            no-caps
+            @click="convertTimestampField"
+          />
         </div>
         <div class="q-ma-md">
           Default Stream Name:
-          <q-input class="q-mt-sm" filled dense label="Default Stream Name" />
+          <q-input v-model="defaultStreamName" class="q-mt-sm" filled dense label="Default Stream Name" />
+          <q-btn
+            label="Convert"
+            color="secondary"
+            class="q-my-md text-bold no-border"
+            padding="sm xl"
+            no-caps
+            @click="convertDefaultStreamName"
+          />
         </div>
       </div>
     </div>
@@ -225,8 +241,10 @@ export default {
     const conversionWarnings = ref([]);
     const conversionErrors = ref([]);
     const activeTab = ref("file");
+    const timestampField = ref("_timestamp");
+    const defaultStreamName = ref("es2");
 
-    const handleFileUpload = (event) => {
+    const handleFileUpload = () => {
       if (!file.value) {
         return;
       }
@@ -250,8 +268,8 @@ export default {
           // default stream name
           const o2ConversionRes = convertKibanaToO2(
             jsonArray,
-            "_timestamp",
-            "es2"
+            timestampField.value,
+            defaultStreamName.value
           );
           o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
           conversionErrors.value =
@@ -283,8 +301,8 @@ export default {
             });
             const o2ConversionRes = convertKibanaToO2(
               jsonArray,
-              "_timestamp",
-              "es2"
+              timestampField.value,
+              defaultStreamName.value
             );
             o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
             conversionErrors.value =
@@ -311,8 +329,8 @@ export default {
         });
         const o2ConversionRes = convertKibanaToO2(
           jsonArray,
-          "_timestamp",
-          "es2"
+          timestampField.value,
+          defaultStreamName.value
         );
         o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
         conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
@@ -342,6 +360,30 @@ export default {
       navigator.clipboard.writeText(o2json.value);
     };
 
+    const convertTimestampField = () => {
+      const jsonArray = []; // Assuming you have jsonArray available
+      const o2ConversionRes = convertKibanaToO2(
+        jsonArray,
+        timestampField.value,
+        defaultStreamName.value
+      );
+      o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+      conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
+      conversionWarnings.value = o2ConversionRes.errorAndWarningList.warningList;
+    };
+
+    const convertDefaultStreamName = () => {
+      const jsonArray = []; // Assuming you have jsonArray available
+      const o2ConversionRes = convertKibanaToO2(
+        jsonArray,
+        timestampField.value,
+        defaultStreamName.value
+      );
+      o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+      conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
+      conversionWarnings.value = o2ConversionRes.errorAndWarningList.warningList;
+    };
+
     return {
       file,
       url,
@@ -357,6 +399,10 @@ export default {
       conversionWarnings,
       conversionErrors,
       activeTab,
+      timestampField,
+      defaultStreamName,
+      convertTimestampField,
+      convertDefaultStreamName,
     };
   },
 };
