@@ -199,7 +199,7 @@ import { ref } from "vue";
 import { convertKibanaToO2 } from "~/lib";
 
 export default {
-  name: "ImportDashboard",
+  name: "KibanaImportDashboard",
   setup() {
     const file = ref(null);
     const url = ref("");

@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="home-container"> -->
-    <!-- <ImportDashboard /> -->
-      <!-- <div class="tab-buttons">
+  <!-- <KibanaImportDashboard /> -->
+  <!-- <div class="tab-buttons">
         <button
           class="tab-button"
           :class="{ active: tab === 'file' }"
@@ -71,11 +71,11 @@
 <script>
 import { ref } from "vue";
 import { convertKibanaToO2 } from "~/lib";
-import ImportDashboard from "./ImportDashboard.vue";
+import KibanaImportDashboard from "./KibanaImportDashboard.vue";
 export default {
   name: "Home",
   components: {
-    ImportDashboard,
+    KibanaImportDashboard,
   },
   setup() {
     // const tab = ref("file");
@@ -85,15 +85,12 @@ export default {
     // const o2json = ref("");
     // const conversionWarnings = ref([]);
     // const conversionErrors = ref([]);
-
     // const handleFileUpload = (event) => {
     //   // get first file
     //   file.value = event.target.files[0];
-
     //   // handle file import here
     //   // Create a new FileReader instance
     //   let reader = new FileReader();
-
     //   // on file load
     //   reader.onload = (e) => {
     //     // Try to parse the file as NDJSON
@@ -123,11 +120,9 @@ export default {
     //       conversionErrors.value = ["Error:" + JSON.stringify(error)];
     //     }
     //   };
-
     //   // Read the file as text
     //   reader.readAsText(file.value);
     // };
-
     // const handleURLImport = () => {
     //   // handle URL import here, using url.value
     //   try {
@@ -158,7 +153,6 @@ export default {
     //     conversionErrors.value = ["Error:" + JSON.stringify(error)];
     //   }
     // };
-
     // const handleNDJSONPaste = () => {
     //   // handle NDJSON paste here, using ndjson.value
     //   // Try to parse the file as NDJSON
@@ -184,7 +178,6 @@ export default {
     //     conversionErrors.value = ["Error:" + JSON.stringify(error)];
     //   }
     // };
-
     // const downloadO2JSON = () => {
     //   // download o2json.value
     //   // prepare json and download via a click
@@ -195,11 +188,9 @@ export default {
     //   htmlA.setAttribute("download", fileName + ".dashboard.json");
     //   htmlA.click();
     // };
-
     // const copyToClipboard = () => {
     //   navigator.clipboard.writeText(o2json.value);
     // };
-
     // return {
     //   tab,
     //   file,

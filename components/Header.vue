@@ -39,17 +39,17 @@
       </div>
     </q-header>
   </q-layout>
-  <ImportDashboard />
+  <KibanaImportDashboard v-if="tabs[0].value === activePerformanceTab" />
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import ImportDashboard from "./ImportDashboard.vue";
+import KibanaImportDashboard from "./KibanaImportDashboard.vue";
 
 export default defineComponent({
   name: "Header",
   components: {
-    ImportDashboard,
+    KibanaImportDashboard,
   },
   setup() {
     const goToHome = () => {
@@ -74,10 +74,10 @@ export default defineComponent({
         label: "Kibana",
         value: "kibana",
       },
-      // {
-      //   label: "Splunk",
-      //   value: "splunk",
-      // },
+      {
+        label: "Splunk",
+        value: "splunk",
+      },
       // {
       //   label: "Grafana",
       //   value: "grafana",
