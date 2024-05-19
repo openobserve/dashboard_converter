@@ -24,7 +24,7 @@
                 bottom-slots
                 v-model="file"
                 label="Drop XML or JSON file here"
-                accept=".xml ,.json"
+                accept=".xml,.json"
                 multiple
                 :rules="[
                   (val) => (val && val.length > 0) || 'Please select a file',
@@ -188,7 +188,8 @@
 
 <script>
 import { ref } from "vue";
-import { convertKibanaToO2 } from "~/lib";
+import { convertSplunkXMLToO2 } from "~/lib/splunk/xmlDataConverter";
+import { convertSplunkJSONToO2 } from "~/lib/splunk/jsonDataConverter";
 
 export default {
   name: "SplunkImportDashboard",
@@ -202,7 +203,7 @@ export default {
     const conversionWarnings = ref([]);
     const conversionErrors = ref([]);
     const activeTab = ref("file");
-    const timestampField = ref("_timestamp");
+    const timestampField = ref(null);
     const defaultStreamName = ref("es2");
 
     const handleFileUpload = () => {
@@ -210,37 +211,40 @@ export default {
         return;
       }
 
-      // handle file import here
       // Create a new FileReader instance
       let reader = new FileReader();
-
+      console.log("file", file.value[0]);
       // on file load
-      reader.onload = (e) => {
-        // Try to parse the file as NDJSON
-        let lines = e.target.result.split("\n");
-        let jsonArray = [];
+      reader.onload = async (e) => {
+        const fileContent = e.target.result;
+
         try {
-          lines.forEach((line) => {
-            if (line) jsonArray.push(JSON.parse(line));
-          });
-          // params
-          // jsonArray
-          // timestampField
-          // default stream name
-          const o2ConversionRes = convertKibanaToO2(
-            jsonArray,
-            timestampField.value,
-            defaultStreamName.value
-          );
+          let o2ConversionRes;
+
+          // Determine whether the content is JSON or XML
+          if (isJSON(fileContent)) {
+            o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+          } else {
+            o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+          }
+
           o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-          conversionErrors.value =
-            o2ConversionRes.errorAndWarningList.errorList;
-          conversionWarnings.value =
-            o2ConversionRes.errorAndWarningList.warningList;
+          conversionErrors.value = Object.entries(
+            o2ConversionRes.warningErrorList.error
+          ).flatMap(([panelName, errors]) =>
+            Array.from(errors).map((error) => `${panelName}: ${error}`)
+          );
+          conversionWarnings.value = Object.entries(
+            o2ConversionRes.warningErrorList.warning
+          ).flatMap(([panelName, warnings]) =>
+            Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
+          );
+
+          console.log("o2json", o2json.value);
+          console.log("conversionErrors", conversionErrors.value);
         } catch (error) {
-          // not able to parse json
-          // ie. not NDJSON
-          conversionErrors.value = ["Error:" + JSON.stringify(error)];
+          console.log("Error during conversion", error);
+          conversionErrors.value = ["Error:" + error.message];
         }
       };
 
@@ -248,60 +252,85 @@ export default {
       reader.readAsText(file.value[0]);
     };
 
-    const handleURLImport = () => {
-      // handle URL import here, using url.value
+    const handleURLImport = async () => {
+      if (!url.value) return;
+
       try {
-        fetch(url.value)
-          .then((response) => response.text()) // Get the response text
-          .then((text) => {
-            // Try to parse the file as NDJSON
-            let lines = text.split("\n");
-            let jsonArray = [];
-            lines.forEach((line) => {
-              if (line) jsonArray.push(JSON.parse(line));
-            });
-            const o2ConversionRes = convertKibanaToO2(
-              jsonArray,
-              timestampField.value,
-              defaultStreamName.value
-            );
-            o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-            conversionErrors.value =
-              o2ConversionRes.errorAndWarningList.errorList;
-            conversionWarnings.value =
-              o2ConversionRes.errorAndWarningList.warningList;
-          });
+        isLoading.value = true;
+        const response = await fetch(url.value);
+        const fileContent = await response.text();
+
+        try {
+          let o2ConversionRes;
+
+          // Determine whether the content is JSON or XML
+          if (isJSON(fileContent)) {
+            o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+          } else {
+            o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+          }
+
+          o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+          conversionErrors.value = Object.entries(
+            o2ConversionRes.warningErrorList.error
+          ).flatMap(([panelName, errors]) =>
+            Array.from(errors).map((error) => `${panelName}: ${error}`)
+          );
+          conversionWarnings.value = Object.entries(
+            o2ConversionRes.warningErrorList.warning
+          ).flatMap(([panelName, warnings]) =>
+            Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
+          );
+
+          isLoading.value = false;
+        } catch (error) {
+          console.log("Error during conversion", error);
+          conversionErrors.value = ["Error:" + error.message];
+          isLoading.value = false;
+        }
       } catch (error) {
-        // not able to parse json
-        // ie. not NDJSON
-        // console.log("error while fetching", error);
-        conversionErrors.value = ["Error:" + JSON.stringify(error)];
+        console.error("Error during conversion", error);
+        conversionErrors.value = ["Error:" + error.message];
+        isLoading.value = false;
       }
     };
 
-    const handleNDJSONPaste = () => {
-      // handle NDJSON paste here, using ndjson.value
-      // Try to parse the file as NDJSON
-      let lines = ndjson.value.split("\n");
-      let jsonArray = [];
+    const handleNDJSONPaste = async () => {
+      const fileContent = ndjson.value;
+        console.log("fileContent", fileContent);
       try {
-        lines.forEach((line) => {
-          if (line) jsonArray.push(JSON.parse(line));
-        });
-        const o2ConversionRes = convertKibanaToO2(
-          jsonArray,
-          timestampField.value,
-          defaultStreamName.value
-        );
+        let o2ConversionRes;
+
+        // Determine whether the content is JSON or XML
+        if (isJSON(fileContent)) {
+          o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+        } else {
+          o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+        }
+
         o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-        conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
-        conversionWarnings.value =
-          o2ConversionRes.errorAndWarningList.warningList;
+        conversionErrors.value = Object.entries(
+          o2ConversionRes.warningErrorList.error
+        ).flatMap(([panelName, errors]) =>
+          Array.from(errors).map((error) => `${panelName}: ${error}`)
+        );
+        conversionWarnings.value = Object.entries(
+          o2ConversionRes.warningErrorList.warning
+        ).flatMap(([panelName, warnings]) =>
+          Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
+        );
       } catch (error) {
-        // not able to parse json
-        // ie. not NDJSON
-        // console.log("The file is not NDJSON", error);
-        conversionErrors.value = ["Error:" + JSON.stringify(error)];
+        console.error("Error during conversion", error);
+        conversionErrors.value = ["Error:" + error.message];
+      }
+    };
+
+    const isJSON = (str) => {
+      try {
+        JSON.parse(str);
+        return true;
+      } catch (e) {
+        return false;
       }
     };
 
@@ -339,17 +368,17 @@ export default {
       isLoading,
       fileImportResults,
       o2json,
-      handleFileUpload,
-      handleURLImport,
-      handleNDJSONPaste,
-      downloadO2JSON,
-      copyToClipboard,
       conversionWarnings,
       conversionErrors,
       activeTab,
       timestampField,
       defaultStreamName,
+      handleFileUpload,
+      handleURLImport,
+      handleNDJSONPaste,
       convertDashboardData,
+      downloadO2JSON,
+      copyToClipboard,
     };
   },
 };

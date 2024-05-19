@@ -123,7 +123,8 @@ const convertSPLQueryToO2Query = async (panelData: any, splQuery: any) => {
 
 export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
   const splunkJSON: any = JSON.parse(splunkJSONStr ?? "{}") ?? {};
-
+  console.log("splunkJSON: ", splunkJSON);
+  
   // reset warning and error list
   warningErrorList.warning = {};
   warningErrorList.error = {};
@@ -138,9 +139,13 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
 
   // dashboard description
   o2Dashboard.description = splunkJSON?.description ?? "";
-
+  
+  console.log("visualizations: ", splunkJSON?.visualizations);
+  
   // panels
   for (const visualizationsKey in splunkJSON?.visualizations) {
+    console.log("visualizationsKey: ", visualizationsKey);
+    
     const panel: any = splunkJSON?.visualizations[visualizationsKey];
 
     const panelData: any = getDefaultDashboardPanelData();
@@ -154,7 +159,8 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
     // get chart type
     panelData.type =
       getChartType(panel.type.split(".").pop(), panelData.title) ?? "bar";
-
+    console.log("panelData.type: ", panelData.type);
+    
     splQuery =
       splunkJSON?.dataSources[panel?.dataSources?.primary].options.query ?? "";
 
@@ -183,7 +189,8 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
       );
     }
   }
-
+    console.log("o2Dashboard: ", o2Dashboard);
+    
   return {
     dashboard: o2Dashboard,
     warningErrorList,

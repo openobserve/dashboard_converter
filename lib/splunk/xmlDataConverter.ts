@@ -124,6 +124,8 @@ export const convertSplunkXMLToO2 = async (SplunkXML: any) => {
 
   return await new Promise((resolve, reject) => {
     const o2Dashboard: O2Dashboard = getInitialDashboardData();
+    console.log("o2Dashboard: xmlDataConverter ", o2Dashboard);
+    
     parseString(
       SplunkXML,
       { trim: true },
@@ -131,10 +133,12 @@ export const convertSplunkXMLToO2 = async (SplunkXML: any) => {
         if (err) {
           reject("Error: Invalid XML format");
         }
-
+        
         let layoutYValue = 0;
         let panelCount = 0;
-        console.log("SplunkJSON: ", o2Dashboard);
+        console.log("o2Dashboard: ", o2Dashboard);
+        console.log("SplunkJSON: ", SplunkJSON);
+        console.log("SplunnkXML: ", SplunkXML);
 
         // dashboard title
         o2Dashboard.title = SplunkJSON?.form?.label
