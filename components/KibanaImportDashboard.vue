@@ -88,7 +88,7 @@
         </q-tab-panel>
       </q-tab-panels>
       <div>
-        <div class="q-my-md q-ml-md">Config Value</div>
+        <div class="q-my-md q-ml-md">Configuration</div>
         <div class="q-ma-md">
           <q-input
             v-model="timestampField"
