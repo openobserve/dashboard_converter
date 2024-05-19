@@ -60,8 +60,14 @@ const getChartType = (chartType: any, panelTitle: any) => {
   return "bar";
 };
 
-const convertSPLQueryToO2Query = async (panelData: any, splQuery: any) => {
-  const response: any = await openai.chat.completions.create({
+const convertSPLQueryToO2Query = async (
+  panelData: any,
+  splQuery: any,
+  openaiInstance: any
+) => {
+  console.log("openai: convertSPLQueryToO2Query", openaiInstance);
+
+  const response: any = await openaiInstance.chat.completions.create({
     messages: [
       {
         role: "system",
@@ -121,10 +127,13 @@ const convertSPLQueryToO2Query = async (panelData: any, splQuery: any) => {
   }
 };
 
-export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
+export const convertSplunkJSONToO2 = async (
+  splunkJSONStr: any,
+  openaiInstance: any
+) => {
   const splunkJSON: any = JSON.parse(splunkJSONStr ?? "{}") ?? {};
   console.log("splunkJSON: ", splunkJSON);
-  
+
   // reset warning and error list
   warningErrorList.warning = {};
   warningErrorList.error = {};
@@ -139,13 +148,13 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
 
   // dashboard description
   o2Dashboard.description = splunkJSON?.description ?? "";
-  
+
   console.log("visualizations: ", splunkJSON?.visualizations);
-  
+
   // panels
   for (const visualizationsKey in splunkJSON?.visualizations) {
     console.log("visualizationsKey: ", visualizationsKey);
-    
+
     const panel: any = splunkJSON?.visualizations[visualizationsKey];
 
     const panelData: any = getDefaultDashboardPanelData();
@@ -160,12 +169,16 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
     panelData.type =
       getChartType(panel.type.split(".").pop(), panelData.title) ?? "bar";
     console.log("panelData.type: ", panelData.type);
-    
+
     splQuery =
       splunkJSON?.dataSources[panel?.dataSources?.primary].options.query ?? "";
 
     if (splQuery) {
-      const isSuccess = await convertSPLQueryToO2Query(panelData, splQuery);
+      const isSuccess = await convertSPLQueryToO2Query(
+        panelData,
+        splQuery,
+        openaiInstance
+      );
       if (isSuccess) {
         // layout
         panelData.layout = {
@@ -189,8 +202,8 @@ export const convertSplunkJSONToO2 = async (splunkJSONStr: any) => {
       );
     }
   }
-    console.log("o2Dashboard: ", o2Dashboard);
-    
+  console.log("o2Dashboard: ", o2Dashboard);
+
   return {
     dashboard: o2Dashboard,
     warningErrorList,

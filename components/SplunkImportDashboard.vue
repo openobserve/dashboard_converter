@@ -93,12 +93,12 @@
         <div class="q-my-md q-ml-md">Configuration</div>
         <div class="q-ma-md">
           <q-input
-            v-model="timestampField"
+            v-model="openApi"
             class="q-mt-sm"
             filled
             dense
-            label="Open API"
-            :hint="'Open API '"
+            label="OpenAI API Key"
+            :hint="'Enter your OpenAI API key'"
           >
           </q-input>
         </div>
@@ -187,7 +187,7 @@
 
   <!-- Loading Overlay -->
   <q-dialog v-model="isLoading" persistent>
-    <q-card style="min-width: 250px; max-width: 300px;">
+    <q-card style="min-width: 250px; max-width: 300px">
       <q-card-section>
         <div class="text-h6">
           Please wait while we convert your dashboard...
@@ -201,9 +201,10 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { convertSplunkXMLToO2 } from "~/lib/splunk/xmlDataConverter";
 import { convertSplunkJSONToO2 } from "~/lib/splunk/jsonDataConverter";
+import { openai } from "~/lib/splunk/prompt.ts";
 
 export default {
   name: "SplunkImportDashboard",
@@ -217,30 +218,38 @@ export default {
     const conversionWarnings = ref([]);
     const conversionErrors = ref([]);
     const activeTab = ref("file");
-    const timestampField = ref(null);
-    const defaultStreamName = ref("es2");
+    const openApi = ref(null);
+    const openaiInstance = ref(null);
 
-    const handleFileUpload = () => {
+    watch(openApi, (newValue) => {
+      if (newValue) {
+        openaiInstance.value = openai(newValue);
+        console.log("openaiInstance.value", openaiInstance.value);
+      }
+    });
+
+    const handleFileUpload = (openaiInstance) => {
       if (!file.value) {
         return;
       }
 
       isLoading.value = true;
-      // Create a new FileReader instance
       let reader = new FileReader();
-      console.log("file", file.value[0]);
-      // on file load
       reader.onload = async (e) => {
         const fileContent = e.target.result;
 
         try {
           let o2ConversionRes;
-
-          // Determine whether the content is JSON or XML
           if (isJSON(fileContent)) {
-            o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+            o2ConversionRes = await convertSplunkJSONToO2(
+              fileContent,
+              openaiInstance
+            );
           } else {
-            o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+            o2ConversionRes = await convertSplunkXMLToO2(
+              fileContent,
+              openaiInstance
+            );
           }
 
           o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
@@ -254,9 +263,6 @@ export default {
           ).flatMap(([panelName, warnings]) =>
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
-
-          console.log("o2json", o2json.value);
-          console.log("conversionErrors", conversionErrors.value);
         } catch (error) {
           console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
@@ -265,11 +271,10 @@ export default {
         }
       };
 
-      // Read the file as text
       reader.readAsText(file.value[0]);
     };
 
-    const handleURLImport = async () => {
+    const handleURLImport = async (openaiInstance) => {
       if (!url.value) return;
 
       try {
@@ -279,12 +284,16 @@ export default {
 
         try {
           let o2ConversionRes;
-
-          // Determine whether the content is JSON or XML
           if (isJSON(fileContent)) {
-            o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+            o2ConversionRes = await convertSplunkJSONToO2(
+              fileContent,
+              openaiInstance
+            );
           } else {
-            o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+            o2ConversionRes = await convertSplunkXMLToO2(
+              fileContent,
+              openaiInstance
+            );
           }
 
           o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
@@ -311,19 +320,23 @@ export default {
       }
     };
 
-    const handleNDJSONPaste = async () => {
+    const handleNDJSONPaste = async (openaiInstance) => {
       const fileContent = ndjson.value;
       console.log("fileContent", fileContent);
 
       try {
         isLoading.value = true;
         let o2ConversionRes;
-
-        // Determine whether the content is JSON or XML
         if (isJSON(fileContent)) {
-          o2ConversionRes = await convertSplunkJSONToO2(fileContent);
+          o2ConversionRes = await convertSplunkJSONToO2(
+            fileContent,
+            openaiInstance
+          );
         } else {
-          o2ConversionRes = await convertSplunkXMLToO2(fileContent);
+          o2ConversionRes = await convertSplunkXMLToO2(
+            fileContent,
+            openaiInstance
+          );
         }
 
         o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
@@ -355,10 +368,7 @@ export default {
     };
 
     const downloadO2JSON = () => {
-      // download o2json.value
-      // prepare json and download via a click
       const o2jsonObject = JSON.parse(o2json.value);
-
       const title = o2jsonObject.title;
       const data =
         "data:text/json;charset=utf-8," + encodeURIComponent(o2json.value);
@@ -372,15 +382,22 @@ export default {
     const copyToClipboard = () => {
       navigator.clipboard.writeText(o2json.value);
     };
+
     const convertDashboardData = () => {
+      if (!openaiInstance.value) {
+        console.error("openai is not initialized with the API key");
+        return;
+      }
+
       if (activeTab.value === "file") {
-        handleFileUpload();
+        handleFileUpload(openaiInstance.value);
       } else if (activeTab.value === "url") {
-        handleURLImport();
+        handleURLImport(openaiInstance.value);
       } else if (activeTab.value === "json") {
-        handleNDJSONPaste();
+        handleNDJSONPaste(openaiInstance.value);
       }
     };
+
     return {
       file,
       url,
@@ -391,14 +408,14 @@ export default {
       conversionWarnings,
       conversionErrors,
       activeTab,
-      timestampField,
-      defaultStreamName,
+      openApi,
       handleFileUpload,
       handleURLImport,
       handleNDJSONPaste,
       convertDashboardData,
       downloadO2JSON,
       copyToClipboard,
+      openaiInstance,
     };
   },
 };
