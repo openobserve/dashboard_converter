@@ -90,7 +90,7 @@
         </q-tab-panel>
       </q-tab-panels>
       <div>
-        <div class="q-my-md q-ml-md">Config Value</div>
+        <div class="q-my-md q-ml-md">Configuration</div>
         <div class="q-ma-md">
           <q-input
             v-model="timestampField"
@@ -184,6 +184,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Loading Overlay -->
+  <q-dialog v-model="isLoading" persistent>
+    <q-card style="min-width: 250px; max-width: 300px;">
+      <q-card-section>
+        <div class="text-h6">
+          Please wait while we convert your dashboard...
+        </div>
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <q-spinner color="primary" size="20px" />
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -211,6 +225,7 @@ export default {
         return;
       }
 
+      isLoading.value = true;
       // Create a new FileReader instance
       let reader = new FileReader();
       console.log("file", file.value[0]);
@@ -245,6 +260,8 @@ export default {
         } catch (error) {
           console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
+        } finally {
+          isLoading.value = false;
         }
       };
 
@@ -281,11 +298,10 @@ export default {
           ).flatMap(([panelName, warnings]) =>
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
-
-          isLoading.value = false;
         } catch (error) {
           console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
+        } finally {
           isLoading.value = false;
         }
       } catch (error) {
@@ -297,8 +313,10 @@ export default {
 
     const handleNDJSONPaste = async () => {
       const fileContent = ndjson.value;
-        console.log("fileContent", fileContent);
+      console.log("fileContent", fileContent);
+
       try {
+        isLoading.value = true;
         let o2ConversionRes;
 
         // Determine whether the content is JSON or XML
@@ -322,6 +340,8 @@ export default {
       } catch (error) {
         console.error("Error during conversion", error);
         conversionErrors.value = ["Error:" + error.message];
+      } finally {
+        isLoading.value = false;
       }
     };
 
