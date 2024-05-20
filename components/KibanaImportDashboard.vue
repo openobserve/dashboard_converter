@@ -14,7 +14,9 @@
         <!-- File Import Section -->
         <q-tab-panel name="file">
           <q-form @submit.prevent="handleFileUpload">
-            <div class="q-my-md">Import Dashboard from exported NdJSON file</div>
+            <div class="q-my-md">
+              Import Dashboard from exported NdJSON file
+            </div>
             <div class="">
               <!-- File Input -->
               <q-file
@@ -217,7 +219,7 @@ export default {
       if (!file.value) {
         return;
       }
-
+      clearOldData();
       // handle file import here
       // Create a new FileReader instance
       let reader = new FileReader();
@@ -257,6 +259,7 @@ export default {
     };
 
     const handleURLImport = () => {
+      clearOldData();
       // handle URL import here, using url.value
       try {
         fetch(url.value)
@@ -288,6 +291,7 @@ export default {
     };
 
     const handleNDJSONPaste = () => {
+      clearOldData();
       // handle NDJSON paste here, using ndjson.value
       // Try to parse the file as NDJSON
       let lines = ndjson.value.split("\n");
@@ -311,6 +315,12 @@ export default {
         // console.log("The file is not NDJSON", error);
         conversionErrors.value = ["Error:" + JSON.stringify(error)];
       }
+    };
+
+    const clearOldData = () => {
+      o2json.value = null;
+      conversionWarnings.value = [];
+      conversionErrors.value = [];
     };
 
     const downloadO2JSON = () => {

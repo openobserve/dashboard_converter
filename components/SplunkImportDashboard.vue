@@ -190,10 +190,13 @@
     <q-card>
       <q-card-section>
         <div class="text-h6">
-          Processing your request. Your dashboard file is being converted. Please bear with us for a moment
+          Processing your request. Your dashboard file is being converted.
+          Please bear with us for a moment
         </div>
       </q-card-section>
-      <q-card-section class="q-pt-none tw-flex tw-justify-center tw-items-center">
+      <q-card-section
+        class="q-pt-none tw-flex tw-justify-center tw-items-center"
+      >
         <q-spinner color="primary" size="40px" />
       </q-card-section>
     </q-card>
@@ -232,6 +235,8 @@ export default {
       if (!file.value) {
         return;
       }
+
+      clearOldData();
 
       isLoading.value = true;
       let reader = new FileReader();
@@ -276,6 +281,8 @@ export default {
 
     const handleURLImport = async (openaiInstance) => {
       if (!url.value) return;
+
+      clearOldData();
 
       try {
         isLoading.value = true;
@@ -322,7 +329,8 @@ export default {
 
     const handleNDJSONPaste = async (openaiInstance) => {
       const fileContent = ndjson.value;
-      console.log("fileContent", fileContent);
+
+      clearOldData();
 
       try {
         isLoading.value = true;
@@ -365,6 +373,12 @@ export default {
       } catch (e) {
         return false;
       }
+    };
+
+    const clearOldData = () => {
+      o2json.value = null;
+      conversionWarnings.value = [];
+      conversionErrors.value = [];
     };
 
     const downloadO2JSON = () => {
