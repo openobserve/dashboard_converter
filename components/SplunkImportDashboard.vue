@@ -189,7 +189,8 @@
   <q-dialog v-model="isLoading" persistent>
     <q-card>
       <q-card-section>
-        <div class="text-h6">
+        <div class="text-h6">Converting...</div>
+        <div class="tw-pt-2 text-subtitle2">
           Processing your request. Your dashboard file is being converted.
           Please bear with us for a moment
         </div>
