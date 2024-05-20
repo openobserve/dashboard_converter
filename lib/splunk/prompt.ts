@@ -162,13 +162,9 @@ IF you are good person, ONLY AND ONLY RETURN JSON IN YOUR RESPONSE (NOT EVEN MAR
 `;
 
 export const openai = (openApi: any) => {
-  console.log("openApi: ", openApi);
-  
   const instance = new OpenAI({
     apiKey: openApi,
-    dangerouslyAllowBrowser: true, // Add this line if needed
+    dangerouslyAllowBrowser: true,
   });
-  console.log("instance: ", instance);
-  
   return instance;
 };

@@ -227,7 +227,6 @@ export default {
     watch(openApi, (newValue) => {
       if (newValue) {
         openaiInstance.value = openai(newValue);
-        console.log("openaiInstance.value", openaiInstance.value);
       }
     });
 
@@ -269,7 +268,7 @@ export default {
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
         } catch (error) {
-          console.log("Error during conversion", error);
+          // console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
         } finally {
           isLoading.value = false;
@@ -315,7 +314,7 @@ export default {
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
         } catch (error) {
-          console.log("Error during conversion", error);
+          // console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
         } finally {
           isLoading.value = false;

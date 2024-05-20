@@ -123,15 +123,12 @@ export const convertSplunkXMLToO2 = async (
   SplunkXML: any,
   openaiInstance: any
 ) => {
-  console.log("XML: ", SplunkXML);
-
   // reset warning and error list
   warningErrorList.warning = {};
   warningErrorList.error = {};
 
   return await new Promise((resolve, reject) => {
     const o2Dashboard: O2Dashboard = getInitialDashboardData();
-    console.log("o2Dashboard: xmlDataConverter ", o2Dashboard);
 
     parseString(
       SplunkXML,
@@ -143,10 +140,6 @@ export const convertSplunkXMLToO2 = async (
 
         let layoutYValue = 0;
         let panelCount = 0;
-        console.log("o2Dashboard: ", o2Dashboard);
-        console.log("SplunkJSON: ", SplunkJSON);
-        console.log("SplunnkXML: ", SplunkXML);
-
         // dashboard title
         o2Dashboard.title = SplunkJSON?.form?.label
           ? SplunkJSON?.form?.label[0] ?? "Dashboard Title"
@@ -242,7 +235,6 @@ export const convertSplunkXMLToO2 = async (
             }
           }
         }
-        console.log("o2Dashboard: ", o2Dashboard);
 
         return resolve({
           dashboard: o2Dashboard,
