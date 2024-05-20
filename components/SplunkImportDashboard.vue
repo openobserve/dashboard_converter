@@ -187,14 +187,14 @@
 
   <!-- Loading Overlay -->
   <q-dialog v-model="isLoading" persistent>
-    <q-card style="min-width: 250px; max-width: 300px">
+    <q-card>
       <q-card-section>
         <div class="text-h6">
-          Please wait while we convert your dashboard...
+          Processing your request. Your dashboard file is being converted. Please bear with us for a moment
         </div>
       </q-card-section>
-      <q-card-section class="q-pt-none">
-        <q-spinner color="primary" size="20px" />
+      <q-card-section class="q-pt-none tw-flex tw-justify-center tw-items-center">
+        <q-spinner color="primary" size="40px" />
       </q-card-section>
     </q-card>
   </q-dialog>
