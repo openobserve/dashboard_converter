@@ -95,6 +95,7 @@
           <q-input
             v-model="openApi"
             class="q-mt-sm"
+            type="password"
             filled
             dense
             label="OpenAI API Key"

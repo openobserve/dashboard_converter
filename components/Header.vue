@@ -2,11 +2,15 @@
   <q-layout view="hHh lpR fFf" style="min-height: 50px !important">
     <q-header class="bg-white" style="border-bottom: 1px solid #ccc">
       <div class="flex justify-between q-pb-sm">
-        <img
-          class="appLogo"
-          src="/public/img/open_observe_logo.svg"
-          @click="goToHome"
-        />
+        <div class="flex relative-position q-mr-sm">
+          <img
+            class="appLogo"
+            loading="eager"
+            src="/public/img/open_observe_logo.svg"
+            @click="goToHome"
+          />
+          <span class="absolute beta-text">Beta</span>
+        </div>
         <div class="q-mt-md text-h6">Convert Dashboard</div>
         <div class="q-mr-lg q-mt-md">
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
@@ -26,9 +30,9 @@
           v-model="activePerformanceTab"
           class="flex justify-start q-ml-lg"
         >
-          <div class="tw-text-base q-mr-lg">Import Dashboard from</div>
           <q-tab
             v-for="tab in tabs"
+            no-caps
             :key="tab.value"
             :name="tab.value"
             class="text-primary"
@@ -102,12 +106,23 @@ export default defineComponent({
 .q-header {
   color: unset;
 
+  .beta-text {
+    font-size: 11px;
+    right: 1px;
+    bottom: 0px;
+  }
+
   .appLogo {
-    margin-left: 20px;
+    margin-left: 0.5rem;
     margin-right: 0;
-    margin-top: 10px;
     width: 150px;
     cursor: pointer;
+
+    &__mini {
+      margin-right: 0.25rem;
+      height: 30px;
+      width: 30px;
+    }
   }
 }
 </style>
