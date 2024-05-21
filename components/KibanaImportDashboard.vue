@@ -164,7 +164,7 @@
         </div>
 
         <div
-          class="q-my-md tw-flex tw-flex-col tw-overflow-y-auto tw-max-h-[calc(calc(100vh-110px)/2)]"
+          class="q-my-md tw-flex tw-flex-col tw-max-h-[calc(calc(100vh-110px)/2)]"
         >
           <div class="tw-sticky tw-top-0 tw-bg-white">
             <div>Converted Dashboard</div>
@@ -199,6 +199,7 @@
 <script>
 import { ref } from "vue";
 import { convertKibanaToO2 } from "~/lib";
+import { useQuasar } from "quasar";
 
 export default {
   name: "KibanaImportDashboard",
@@ -214,6 +215,8 @@ export default {
     const activeTab = ref("file");
     const timestampField = ref("_timestamp");
     const defaultStreamName = ref("es2");
+
+    const $q = useQuasar();
 
     const handleFileUpload = () => {
       if (!file.value) {
@@ -340,6 +343,12 @@ export default {
 
     const copyToClipboard = () => {
       navigator.clipboard.writeText(o2json.value);
+
+      $q.notify({
+        type: "positive",
+        timeout: 2000,
+        message: "Copied to clipboard",
+      });
     };
     const convertDashboardData = () => {
       if (activeTab.value === "file") {

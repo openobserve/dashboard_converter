@@ -154,7 +154,7 @@
         </div>
 
         <div
-          class="q-my-md tw-flex tw-flex-col tw-overflow-y-auto tw-max-h-[calc(calc(100vh-110px)/2)]"
+          class="q-my-md tw-flex tw-flex-col tw-max-h-[calc(calc(100vh-110px)/2)]"
         >
           <div class="tw-sticky tw-top-0 tw-bg-white">
             <div>Converted Dashboard</div>
@@ -191,8 +191,7 @@
       <q-card-section>
         <div class="text-h6">Converting...</div>
         <div class="tw-pt-2 text-subtitle2">
-          Processing your request. Your dashboard file is being converted.
-          Please bear with us for a moment
+          Processing your request. Your dashboard file is being converted...
         </div>
       </q-card-section>
       <q-card-section
@@ -209,6 +208,7 @@ import { ref, watch } from "vue";
 import { convertSplunkXMLToO2 } from "~/lib/splunk/xmlDataConverter";
 import { convertSplunkJSONToO2 } from "~/lib/splunk/jsonDataConverter";
 import { openai } from "~/lib/splunk/prompt.ts";
+import { useQuasar } from "#imports";
 
 export default {
   name: "SplunkImportDashboard",
@@ -224,6 +224,8 @@ export default {
     const activeTab = ref("file");
     const openApi = ref(null);
     const openaiInstance = ref(null);
+
+    const $q = useQuasar();
 
     watch(openApi, (newValue) => {
       if (newValue) {
@@ -395,6 +397,12 @@ export default {
 
     const copyToClipboard = () => {
       navigator.clipboard.writeText(o2json.value);
+
+      $q.notify({
+        type: "positive",
+        timeout: 2000,
+        message: "Copied to clipboard",
+      });
     };
 
     const convertDashboardData = () => {
