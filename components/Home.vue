@@ -1,7 +1,7 @@
 <template>
-  <div class="home-container">
-    <div class="tab-container">
-      <div class="tab-buttons">
+  <!-- <div class="home-container"> -->
+  <!-- <KibanaImportDashboard /> -->
+  <!-- <div class="tab-buttons">
         <button
           class="tab-button"
           :class="{ active: tab === 'file' }"
@@ -65,151 +65,146 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 </template>
 
 <script>
 import { ref } from "vue";
 import { convertKibanaToO2 } from "~/lib";
+import KibanaImportDashboard from "./KibanaImportDashboard.vue";
 export default {
   name: "Home",
+  components: {
+    KibanaImportDashboard,
+  },
   setup() {
-    const tab = ref("file");
-    const file = ref(null);
-    const url = ref("");
-    const ndjson = ref("");
-    const o2json = ref("");
-    const conversionWarnings = ref([]);
-    const conversionErrors = ref([]);
-
-    const handleFileUpload = (event) => {
-      // get first file
-      file.value = event.target.files[0];
-
-      // handle file import here
-      // Create a new FileReader instance
-      let reader = new FileReader();
-
-      // on file load
-      reader.onload = (e) => {
-        // Try to parse the file as NDJSON
-        let lines = e.target.result.split("\n");
-        let jsonArray = [];
-        try {
-          lines.forEach((line) => {
-            if (line) jsonArray.push(JSON.parse(line));
-          });
-          // params
-          // jsonArray
-          // timestampField
-          // default stream name
-          const o2ConversionRes = convertKibanaToO2(
-            jsonArray,
-            "_timestamp",
-            "es2"
-          );
-          o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-          conversionErrors.value =
-            o2ConversionRes.errorAndWarningList.errorList;
-          conversionWarnings.value =
-            o2ConversionRes.errorAndWarningList.warningList;
-        } catch (error) {
-          // not able to parse json
-          // ie. not NDJSON
-          conversionErrors.value = ["Error:" + JSON.stringify(error)];
-        }
-      };
-
-      // Read the file as text
-      reader.readAsText(file.value);
-    };
-
-    const handleURLImport = () => {
-      // handle URL import here, using url.value
-      try {
-        fetch(url.value)
-          .then((response) => response.text()) // Get the response text
-          .then((text) => {
-            // Try to parse the file as NDJSON
-            let lines = text.split("\n");
-            let jsonArray = [];
-            lines.forEach((line) => {
-              if (line) jsonArray.push(JSON.parse(line));
-            });
-            const o2ConversionRes = convertKibanaToO2(
-              jsonArray,
-              "_timestamp",
-              "es2"
-            );
-            o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-            conversionErrors.value =
-              o2ConversionRes.errorAndWarningList.errorList;
-            conversionWarnings.value =
-              o2ConversionRes.errorAndWarningList.warningList;
-          });
-      } catch (error) {
-        // not able to parse json
-        // ie. not NDJSON
-        // console.log("error while fetching", error);
-        conversionErrors.value = ["Error:" + JSON.stringify(error)];
-      }
-    };
-
-    const handleNDJSONPaste = () => {
-      // handle NDJSON paste here, using ndjson.value
-      // Try to parse the file as NDJSON
-      let lines = ndjson.value.split("\n");
-      let jsonArray = [];
-      try {
-        lines.forEach((line) => {
-          if (line) jsonArray.push(JSON.parse(line));
-        });
-        const o2ConversionRes = convertKibanaToO2(
-          jsonArray,
-          "_timestamp",
-          "es2"
-        );
-        o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
-        conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
-        conversionWarnings.value =
-          o2ConversionRes.errorAndWarningList.warningList;
-      } catch (error) {
-        // not able to parse json
-        // ie. not NDJSON
-        // console.log("The file is not NDJSON", error);
-        conversionErrors.value = ["Error:" + JSON.stringify(error)];
-      }
-    };
-
-    const downloadO2JSON = () => {
-      // download o2json.value
-      // prepare json and download via a click
-      const data = "data:text/json;charset=utf-8," + o2json.value;
-      const htmlA = document.createElement("a");
-      htmlA.setAttribute("href", data);
-      const fileName = "O2 Dashboard";
-      htmlA.setAttribute("download", fileName + ".dashboard.json");
-      htmlA.click();
-    };
-
-    const copyToClipboard = () => {
-      navigator.clipboard.writeText(o2json.value);
-    };
-
-    return {
-      tab,
-      file,
-      url,
-      ndjson,
-      o2json,
-      handleFileUpload,
-      handleURLImport,
-      handleNDJSONPaste,
-      downloadO2JSON,
-      copyToClipboard,
-      conversionWarnings,
-      conversionErrors,
-    };
+    // const tab = ref("file");
+    // const file = ref(null);
+    // const url = ref("");
+    // const ndjson = ref("");
+    // const o2json = ref("");
+    // const conversionWarnings = ref([]);
+    // const conversionErrors = ref([]);
+    // const handleFileUpload = (event) => {
+    //   // get first file
+    //   file.value = event.target.files[0];
+    //   // handle file import here
+    //   // Create a new FileReader instance
+    //   let reader = new FileReader();
+    //   // on file load
+    //   reader.onload = (e) => {
+    //     // Try to parse the file as NDJSON
+    //     let lines = e.target.result.split("\n");
+    //     let jsonArray = [];
+    //     try {
+    //       lines.forEach((line) => {
+    //         if (line) jsonArray.push(JSON.parse(line));
+    //       });
+    //       // params
+    //       // jsonArray
+    //       // timestampField
+    //       // default stream name
+    //       const o2ConversionRes = convertKibanaToO2(
+    //         jsonArray,
+    //         "_timestamp",
+    //         "es2"
+    //       );
+    //       o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+    //       conversionErrors.value =
+    //         o2ConversionRes.errorAndWarningList.errorList;
+    //       conversionWarnings.value =
+    //         o2ConversionRes.errorAndWarningList.warningList;
+    //     } catch (error) {
+    //       // not able to parse json
+    //       // ie. not NDJSON
+    //       conversionErrors.value = ["Error:" + JSON.stringify(error)];
+    //     }
+    //   };
+    //   // Read the file as text
+    //   reader.readAsText(file.value);
+    // };
+    // const handleURLImport = () => {
+    //   // handle URL import here, using url.value
+    //   try {
+    //     fetch(url.value)
+    //       .then((response) => response.text()) // Get the response text
+    //       .then((text) => {
+    //         // Try to parse the file as NDJSON
+    //         let lines = text.split("\n");
+    //         let jsonArray = [];
+    //         lines.forEach((line) => {
+    //           if (line) jsonArray.push(JSON.parse(line));
+    //         });
+    //         const o2ConversionRes = convertKibanaToO2(
+    //           jsonArray,
+    //           "_timestamp",
+    //           "es2"
+    //         );
+    //         o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+    //         conversionErrors.value =
+    //           o2ConversionRes.errorAndWarningList.errorList;
+    //         conversionWarnings.value =
+    //           o2ConversionRes.errorAndWarningList.warningList;
+    //       });
+    //   } catch (error) {
+    //     // not able to parse json
+    //     // ie. not NDJSON
+    //     // console.log("error while fetching", error);
+    //     conversionErrors.value = ["Error:" + JSON.stringify(error)];
+    //   }
+    // };
+    // const handleNDJSONPaste = () => {
+    //   // handle NDJSON paste here, using ndjson.value
+    //   // Try to parse the file as NDJSON
+    //   let lines = ndjson.value.split("\n");
+    //   let jsonArray = [];
+    //   try {
+    //     lines.forEach((line) => {
+    //       if (line) jsonArray.push(JSON.parse(line));
+    //     });
+    //     const o2ConversionRes = convertKibanaToO2(
+    //       jsonArray,
+    //       "_timestamp",
+    //       "es2"
+    //     );
+    //     o2json.value = JSON.stringify(o2ConversionRes.dashboard, null, 2);
+    //     conversionErrors.value = o2ConversionRes.errorAndWarningList.errorList;
+    //     conversionWarnings.value =
+    //       o2ConversionRes.errorAndWarningList.warningList;
+    //   } catch (error) {
+    //     // not able to parse json
+    //     // ie. not NDJSON
+    //     // console.log("The file is not NDJSON", error);
+    //     conversionErrors.value = ["Error:" + JSON.stringify(error)];
+    //   }
+    // };
+    // const downloadO2JSON = () => {
+    //   // download o2json.value
+    //   // prepare json and download via a click
+    //   const data = "data:text/json;charset=utf-8," + o2json.value;
+    //   const htmlA = document.createElement("a");
+    //   htmlA.setAttribute("href", data);
+    //   const fileName = "O2 Dashboard";
+    //   htmlA.setAttribute("download", fileName + ".dashboard.json");
+    //   htmlA.click();
+    // };
+    // const copyToClipboard = () => {
+    //   navigator.clipboard.writeText(o2json.value);
+    // };
+    // return {
+    //   tab,
+    //   file,
+    //   url,
+    //   ndjson,
+    //   o2json,
+    //   handleFileUpload,
+    //   handleURLImport,
+    //   handleNDJSONPaste,
+    //   downloadO2JSON,
+    //   copyToClipboard,
+    //   conversionWarnings,
+    //   conversionErrors,
+    // };
   },
 };
 </script>
