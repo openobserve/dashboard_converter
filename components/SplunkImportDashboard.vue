@@ -4,9 +4,9 @@
     <div class="q-mr-md tw-flex:1 tw-w-1/3">
       <!-- Tabs -->
       <q-tabs v-model="activeTab" dense align="justify" class="q-my-md">
-        <q-tab no-caps name="file" label="File" />
-        <q-tab no-caps name="url" label="URL" />
-        <q-tab no-caps name="json" label="Paste Data" />
+        <q-tab no-caps name="file" label="File" class="text-primary"/>
+        <q-tab no-caps name="url" label="URL" class="text-primary"/>
+        <q-tab no-caps name="json" label="Paste Data" class="text-primary"/>
       </q-tabs>
 
       <!-- Tab Contents -->
