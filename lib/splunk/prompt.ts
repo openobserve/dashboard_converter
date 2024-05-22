@@ -43,6 +43,8 @@ We only support below list of aggregation function:
 
 So, if any other aggregation function is used then in response add in the warning list that \`<used aggregation function> is not supported. Also, tell that change it in converted SQL query. \`
 
+For count-distinct, for example if field name is \`name\` then \`count-distinct(name)\` will be converted as \`count(distinct(name))\`.
+
 
 4. How to use alias, groupby and orderby
 
