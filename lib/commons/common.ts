@@ -30,7 +30,7 @@ export const getInitialDashboardData = () => {
   };
 };
 
-export const getDefaultDashboardPanelData: Panel = () => ({
+export const getDefaultDashboardPanelData: any = () => ({
   id: generatePanelId(),
   type: "bar",
   title: "",

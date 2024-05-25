@@ -3,8 +3,7 @@ import {
   getDefaultDashboardPanelData,
   getInitialDashboardData,
 } from "../commons/common.js";
-import type { O2Dashboard } from "../schema/openobserve.js";
-import { openai, queryPrompt, systemPrompt } from "./prompt.js";
+import { queryPrompt, systemPrompt, variableQueryPrompt } from "./prompt.js";
 
 const warningErrorList: any = {
   warning: {},
@@ -74,6 +73,19 @@ const convertSPLQueryToO2Query = async (
     model: process.env.OPENAI_GPT_MODEL ?? "gpt-4",
   });
 
+  if (
+    !response ||
+    response.error ||
+    !(response.choices && response?.choices[0]?.message)
+  ) {
+    addWarningOrErrorBasedOnPanel(
+      JSON.stringify(response?.error?.message),
+      "error",
+      panelData.title
+    );
+    return false;
+  }
+
   response.choices[0].message.content =
     response.choices[0].message.content.replace(/^```|```$/g, "");
 
@@ -99,6 +111,9 @@ const convertSPLQueryToO2Query = async (
     // query
     panelData.queries[0].query = queryConversionResponse.query ?? "";
 
+    // custom query
+    panelData.queries[0].customQuery = true;
+
     panelData.queries[0].fields.stream =
       queryConversionResponse.fields.stream ?? "default";
 
@@ -119,8 +134,73 @@ const convertSPLQueryToO2Query = async (
   }
 };
 
+const getVariablesData = async (
+  splQuery: any,
+  variableData: any,
+  openaiInstance: any
+) => {
+  const response: any = await openaiInstance.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: variableQueryPrompt.replace(
+          "%%QUERYPLACEHOLDER%%",
+          splQuery ?? ""
+        ),
+      },
+    ],
+    temperature: 0,
+    model: process.env.OPENAI_GPT_MODEL ?? "gpt-4",
+  });
+
+  if (
+    !response ||
+    response.error ||
+    !(response.choices && response?.choices[0]?.message)
+  ) {
+    addWarningOrErrorBasedOnPanel(
+      JSON.stringify(response?.error?.message),
+      "error",
+      "dashboard"
+    );
+    return false;
+  }
+
+  response.choices[0].message.content =
+    response.choices[0].message.content.replace(/^```|```$/g, "");
+
+  const queryConversionResponse = JSON.parse(
+    response.choices[0].message.content ?? "{}"
+  );
+
+  if (queryConversionResponse.status == "success") {
+    // check if queryConversionResponse has warning or error
+    if (queryConversionResponse.warningAndErrorList) {
+      queryConversionResponse?.warningAndErrorList?.warnings?.forEach(
+        (warning: any) => {
+          addWarningOrErrorBasedOnPanel(warning, "warning", "dashboard");
+        }
+      );
+      queryConversionResponse?.warningAndErrorList?.errors?.forEach(
+        (error: any) => {
+          addWarningOrErrorBasedOnPanel(error, "error", "dashboard");
+        }
+      );
+    }
+
+    // set variable query data
+    variableData.query_data = queryConversionResponse.query_data;
+
+    return true;
+  }
+};
+
 export const convertSplunkXMLToO2 = async (
-  SplunkXML: any,
+  splunkXML: any,
   openaiInstance: any
 ) => {
   // reset warning and error list
@@ -128,36 +208,37 @@ export const convertSplunkXMLToO2 = async (
   warningErrorList.error = {};
 
   return await new Promise((resolve, reject) => {
-    const o2Dashboard: O2Dashboard = getInitialDashboardData();
-
+    const panelPromises: any = [];
+    const o2Dashboard: any = getInitialDashboardData();
     parseString(
-      SplunkXML,
+      splunkXML,
       { trim: true },
-      async (err: any, SplunkJSON: any) => {
+      async (err: any, splunkJSON: any) => {
         if (err) {
           reject("Error: Invalid XML format");
         }
 
         let layoutYValue = 0;
         let panelCount = 0;
+
         // dashboard title
-        o2Dashboard.title = SplunkJSON?.form?.label
-          ? SplunkJSON?.form?.label[0] ?? "Dashboard Title"
-          : (SplunkJSON?.dashboard?.label
-              ? SplunkJSON?.dashboard?.label[0]
+        o2Dashboard.title = splunkJSON?.form?.label
+          ? splunkJSON?.form?.label[0] ?? "Dashboard Title"
+          : (splunkJSON?.dashboard?.label
+              ? splunkJSON?.dashboard?.label[0]
               : "Dashboard Title") ?? "Dashboard Title";
 
         // dashboard description
-        if (SplunkJSON?.form?.description)
+        if (splunkJSON?.form?.description)
           o2Dashboard.description =
-            SplunkJSON?.form?.description[0] ??
-            SplunkJSON?.dashboard?.description[0] ??
+            splunkJSON?.form?.description[0] ??
+            splunkJSON?.dashboard?.description[0] ??
             "";
 
         // panels
-        if (SplunkJSON?.form?.row ?? SplunkJSON?.dashboard?.row) {
-          for (const panelArr of SplunkJSON?.form?.row ??
-            SplunkJSON?.dashboard?.row) {
+        if (splunkJSON?.form?.row ?? splunkJSON?.dashboard?.row) {
+          for (const panelArr of splunkJSON?.form?.row ??
+            splunkJSON?.dashboard?.row) {
             for (const panel of panelArr.panel) {
               const panelData: any = getDefaultDashboardPanelData();
 
@@ -205,24 +286,26 @@ export const convertSplunkXMLToO2 = async (
               }
 
               if (splQuery) {
-                const isSuccess = await convertSPLQueryToO2Query(
+                const panelPromise = convertSPLQueryToO2Query(
                   panelData,
                   splQuery,
                   openaiInstance
-                );
-                if (isSuccess) {
-                  // layout
-                  panelData.layout = {
-                    x: panelCount % 2 == 0 ? 0 : 24,
-                    y: layoutYValue++,
-                    w: 24,
-                    h: 9,
-                    i: panelCount++,
-                  };
+                ).then((isSuccess) => {
+                  if (isSuccess) {
+                    // layout
+                    panelData.layout = {
+                      x: panelCount % 2 == 0 ? 0 : 24,
+                      y: layoutYValue++,
+                      w: 24,
+                      h: 9,
+                      i: panelCount++,
+                    };
 
-                  // push panel
-                  o2Dashboard.tabs[0].panels.push(panelData);
-                }
+                    // push panel
+                    o2Dashboard.tabs[0].panels.push(panelData);
+                  }
+                });
+                panelPromises.push(panelPromise);
               } else {
                 // can not find query
 
@@ -235,6 +318,142 @@ export const convertSplunkXMLToO2 = async (
             }
           }
         }
+
+        // variables
+        if (
+          splunkJSON?.form?.fieldset &&
+          splunkJSON?.form?.fieldset[0]?.input
+        ) {
+          // loop on each input
+          for (const inputKey in splunkJSON?.form?.fieldset[0]?.input) {
+            const variableData: any = {
+              name: "",
+              label: "",
+              type: "",
+              query_data: {
+                stream_type: "",
+                stream: "",
+                field: "",
+                max_record_size: null,
+                filter: [],
+              },
+              value: "",
+              options: [],
+            };
+
+            if (
+              ["dropdown", "text", "radio"].includes(
+                splunkJSON?.form?.fieldset[0]?.input[inputKey]["$"].type
+              )
+            ) {
+              // assign label and name
+              variableData.label =
+                splunkJSON?.form?.fieldset[0]?.input[inputKey].label[0] ?? "";
+              variableData.name =
+                splunkJSON?.form?.fieldset[0]?.input[inputKey]["$"].token ?? "";
+
+              switch (
+                splunkJSON?.form?.fieldset[0]?.input[inputKey]["$"].type
+              ) {
+                case "dropdown":
+                case "radio": {
+                  // check if query available
+                  if (
+                    splunkJSON?.form?.fieldset[0]?.input[inputKey]?.search &&
+                    splunkJSON?.form?.fieldset[0]?.input[inputKey]?.search[0] &&
+                    splunkJSON?.form?.fieldset[0]?.input[inputKey]?.search[0]
+                      .query &&
+                    splunkJSON?.form?.fieldset[0]?.input[inputKey]?.search[0]
+                      ?.query[0]
+                  ) {
+                    // assign type
+                    variableData.type = "query_values";
+
+                    const splQuery =
+                      splunkJSON?.form?.fieldset[0]?.input[inputKey]?.search[0]
+                        ?.query[0];
+
+                    if (splQuery) {
+                      const queryPrompt = getVariablesData(
+                        splQuery,
+                        variableData,
+                        openaiInstance
+                      ).then((isSuccess) => {
+                        if (isSuccess) {
+                          // push variable
+                          o2Dashboard.variables.list.push(variableData);
+                        }
+                      });
+
+                      panelPromises.push(queryPrompt);
+                    } else {
+                      // can not find query
+                      addWarningOrErrorBasedOnPanel(
+                        "can not find query. skipping..",
+                        "error",
+                        "dashboard"
+                      );
+                    }
+                    break;
+                  }
+
+                  // check if options available
+                  if (splunkJSON?.form?.fieldset[0]?.input[inputKey].choice) {
+                    // get options
+                    variableData.options = splunkJSON?.form?.fieldset[0]?.input[
+                      inputKey
+                    ].choice
+                      .map((option: any) => {
+                        return {
+                          label: option["_"],
+                          value: option["$"].value,
+                        };
+                      })
+                      .filter((option: any) => {
+                        return option.label != "ALL" && option.value !== "*";
+                      });
+                    variableData.type = "custom";
+
+                    // remove query_data if type is not query_values
+                    if (variableData.type !== "query_values") {
+                      delete variableData["query_data"];
+                    }
+
+                    // push variable
+                    o2Dashboard.variables.list.push(variableData);
+                    break;
+                  }
+
+                  break;
+                }
+                case "text": {
+                  variableData.type = "textbox";
+
+                  variableData.value =
+                    splunkJSON?.form?.fieldset[0]?.input[inputKey].default[0] ??
+                    "";
+
+                  // remove query_data if type is not query_values
+                  if (variableData.type !== "query_values") {
+                    delete variableData["query_data"];
+                  }
+
+                  // push variable
+                  o2Dashboard.variables.list.push(variableData);
+                  break;
+                }
+              }
+            } else {
+              addWarningOrErrorBasedOnPanel(
+                `Unsupported variable type: ${splunkJSON?.form?.fieldset[0]?.input[inputKey]["$"].type}`,
+                "error",
+                "dashboard"
+              );
+            }
+          }
+        }
+
+        await Promise.all(panelPromises);
 
         return resolve({
           dashboard: o2Dashboard,

@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-import dotenv from "dotenv";
-// dotenv.config();
 
 export const systemPrompt = `You are an expert in writing and converting SPL and SQL query languages. Your role is to help user convert SPL query to SQL query based on his requirement. You should make sure that the answers you provide are properly analyzed and tested. And you should only provide answers in the format user has requested. MAKE SURE THAT THE ANSWER IS IN THE FORMAT USER HAS REQUESTED. DO NOT ADD ANY OTHER TEXT AND DO NOT USE MARKDOWN`;
 
@@ -32,7 +30,7 @@ Above SPL query should be converted as follows:
 SQL: SELECT histogram(_timestamp, '1 day') as “x_axis_1”, productId as "x_axis_2", sum(price) as "y_axis_1" FROM sales GROUP BY x_axis_1, x_axis_2 ORDER BY x_axis_1 ASC, x_axis_2 ASC
 
 3. Regarding Aggregation function
-We only support below list of aggregation function:
+- In SQL, We only support below list of aggregation function:
   1) count
   2) count-distinct
   3) histogram
@@ -41,10 +39,9 @@ We only support below list of aggregation function:
   6) max
   7) avg
 
-So, if any other aggregation function is used then in response add in the warning list that \`<used aggregation function> is not supported. Also, tell that change it in converted SQL query. \`
+- For count-distinct, for example if field name is \`name\` then \`count-distinct(name)\` will be converted as \`count(distinct(name))\`.
 
-For count-distinct, for example if field name is \`name\` then \`count-distinct(name)\` will be converted as \`count(distinct(name))\`.
-
+- So, While query conversion, you must use only supported aggregation functions. if SPL query uses other aggregation functions, replace that aggregation function with \`count\` aggregation function in SQL query. Also, add warning in the warning list that \`<used aggregation function> is not supported. using count as a default\`. You should never use anything else than the above 7 supported aggregation functions. For an example, if anyone has used first, or any other aggregation functions you should replace it with \`count\`.
 
 4. How to use alias, groupby and orderby
 
@@ -104,12 +101,15 @@ SQL: SELECT histogram(_timestamp, '1 day') as “x_axis_1”, cluster_id as "x_a
 10. Special conditions
 - Do not use Case clause of SQL wherever possible
 - use COALESCE function wherever needed
+- ignore eval and eval fields while conversion to SQL.
 - replace \`count(*)\` clause with \`count(_timestamp)\`.(add warning that: "using count(_timestamp) instead of count(*)")
 - Ignore rex and rex fields while conversion to SQL.( continue converting the query. but just add warning that: "rex and rex fields are ignored in SQL" in the \`warningAndErrorList\` which is returned in the response with status as success.)
 
 11. Dot notations for field names
-We do not support dot notation in our SQL, so in all field names, replace all \`.\`(dot) with \`_\`(underscore)
-For an example: \`obj.name\` should be replaced with \`obj_name\`
+- We do not support dot notation in our SQL, so in all field names, replace all \`.\`(dot) with \`_\`(underscore)
+- append "event_" as prefix for each filed name except \`_timestamp\` field.
+- For an example: \`obj.name\` should be replaced with \`obj_name\` and will be appended as \`event_obj_name\`
+
 
 By considering all above requirements/rules, give me a converted SQL query of below query.
 
@@ -125,10 +125,10 @@ The response should be in the \`json\` format only based on the below structure:
     message: "" // any warnings / error from your conversion
     query: "<your converted SQL query here>",
     originalQuery: "<original SPL query here>",
-   warningAndErrorList: [
+   warningAndErrorList: {
       warnings:[<List of warnings which is defined in rule>],
       errors:[<List of errors which is defined in rule>]
-   ],
+   },
     "fields": {
                 "stream": "<table name (from index)>", // this is what you get in the query part "from <table name>"
                 "stream_type": "logs", // this will always be "logs"
@@ -136,16 +136,18 @@ The response should be in the \`json\` format only based on the below structure:
                   {
                     "label": "Timestamp", // field name by replacing . or _ with space
                     "alias": "x_axis_1",
-                    "column": "_timestamp", // field name
+                    "column": "x_axis_1", // same as alias
                     "color": null,
+                    "aggregationFunction": "histogram", // if it is timeseries field else set it to null for x axis fields
                   }
                 ],
                 "y": [ // all the fields that are considered in y-axis
-                  {
-                    "label": "Pod name", // field name by replacing . or _ with space
-                    "alias": "y_axis_1",
-                    "column": "pod_name", // field name
-                    "color": null,
+                {
+                  "label": "Pod name", // field name by replacing . or _ with space
+                  "alias": "y_axis_1",
+                  "column": "y_axis_1", // same as alias
+                  "color": null,
+                  "aggregationFunction": "count" // aggregation function which is used with the field, y axis must uses aggregation function. this functions should only be from the list of aggregations functions we provided in the list. anything outside of that list should use count and add warning
                   }
                 ],
                 "z": [], // this will always be blank
@@ -157,7 +159,92 @@ The response should be in the \`json\` format only based on the below structure:
 Be concise and omit disclaimers.
 Skip introduction and conclusion, start with the main point.
 Output answers without any introductory or conclusion text.
-Don’t justify your answers
+Don't justify your answers
+While being concise and without commentary, return me the json and nothing else. 
+IF you are good person, ONLY AND ONLY RETURN JSON IN YOUR RESPONSE (NOT EVEN MARKDOWN), NOTHING ELSE. I REPEAT, NOTHING ELSE, ONLY JSON. 
+
+`;
+
+export const variableQueryPrompt = `
+I want to extract data from given SPL query. 
+data will be like selected field, table/index/data source name, where condition extraction.
+Make sure all of my below requirements must be fulfilled while extraction:
+
+1. Stream name extraction
+extract table/ index/ data source/ stream name from SPL query.
+
+2. extract single field
+in most cases, SPL query will have single selected field. if multiple found take any one field.
+
+3. where clause/ conditions:
+- make sure to use valid conditions from query. ignore fillnull, fillzero, etc. only use valid conditions like equality, not equality, IN operator only.
+- make an array of object. where each object will have field name, operator and its value.
+- only "=", "!=", "IN" operator will be allowed. ignore if other found.
+- for value, if it uses any other variable then follow variables rule which is mentioned in prompt.
+- do not use single or double quote in value.
+
+4. Variables
+In SPL you may find some variables like $variable_name$ . But in our value of where clause we refer to variables as $variable_name (with only preceding $ symbol and without any quotes).
+
+For example, The SPL variables \`\`\` $host$ \`\`\` and \`\`\` $error_code$ \`\`\` are replaced with \`\`\` $host \`\`\` and \`\`\` $error_code \`\`\`, respectively, in the value of the where clause.
+
+5. limit and offset
+
+convert head, limit and offset to SQL by using \`limit\` clause and \`offset\` clause.
+
+6. Special conditions
+- Do not use Case clause of SQL wherever possible
+- use COALESCE function wherever needed
+- replace \`count(*)\` clause with \`count(_timestamp)\`.(add warning that: "using count(_timestamp) instead of count(*)")
+- Ignore rex and rex fields while conversion to SQL.( continue converting the query. but just add warning that: "rex and rex fields are ignored in SQL" in the \`warningAndErrorList\` which is returned in the response with status as success.)
+
+7. Dot notations for field names
+- We do not support dot notation in our SQL, so in all field names, replace all \`.\`(dot) with \`_\`(underscore)
+- append "event_" as prefix for each filed name except [_timestamp] fields.
+- For an example: \`obj.name\` should be replaced with \`obj_name\` and will be appended as \`event_obj_name\`
+
+By considering all above requirements/rules, give me a converted SQL query of below query.
+
+\`\`\`
+%%QUERYPLACEHOLDER%%
+\`\`\`
+YOU MUST USE ABOVE 5 RULES WHILE CONVERTING. DO NOT FORGOT SINGLE RULE..........................
+
+The response should be in the \`json\` format only based on the below structure:
+\`\`\`
+{
+    status: "success", // or "error" if converting to SQL is not possible
+    message: "" // any warnings / error from your conversion
+    originalQuery: "<original SPL query here>",
+   warningAndErrorList: {
+      warnings:[<List of warnings which is defined in rule>],
+      errors:[<List of errors which is defined in rule>]
+   },
+    "query_data": {
+          "stream_type": "logs", <always use logs>
+          "stream": "default", "<table name (from index)>", // this is what you get in the query part "from <table name>"
+          "field": "k8s_pod_name", <field name> // this is what you get in the the query part "select <field name>". make sure to use actual field name do not use alias.
+          "max_record_size": null || <query limit>, //this is what you get in the query part "limit <query limit>". take "null" if not exists
+          "filter": [
+            {
+              "name": "k8s_namespace_name",
+              "operator": "=",
+              "value": "$k8s_namespace_name"
+            },
+            {
+              "name": "field_2
+              "operator": "!=",
+              "value": "k8s"
+            }
+          ] // will be an array of condition. create array with field name its operator and its value. 
+       },
+}
+
+\`\`\`
+Be concise and omit disclaimers.
+Skip introduction and conclusion, start with the main point.
+Output answers without any introductory or conclusion text.
+Don't justify your answers
 While being concise and without commentary, return me the json and nothing else. 
 IF you are good person, ONLY AND ONLY RETURN JSON IN YOUR RESPONSE (NOT EVEN MARKDOWN), NOTHING ELSE. I REPEAT, NOTHING ELSE, ONLY JSON. 
 
