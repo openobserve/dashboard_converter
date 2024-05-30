@@ -11,7 +11,7 @@
           />
           <span class="absolute beta-text">Beta</span>
         </div>
-        <div class="q-mt-md text-h6">Convert Dashboard</div>
+        <div class="q-mt-md text-h6">Dashboard Converter</div>
         <div class="q-mr-lg q-mt-md">
           <q-btn flat round dense class="q-mr-sm" @click="goToGithub">
             <img src="/public/img/github.svg" />
@@ -65,7 +65,7 @@ export default defineComponent({
 
     const goToGithub = () => {
       window.open(
-        "https://github.com/openobserve/Kibana_to_O2_Dashboards",
+        "https://github.com/openobserve/dashboard_converter",
         "_blank"
       );
     };
