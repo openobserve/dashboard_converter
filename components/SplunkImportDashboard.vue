@@ -4,9 +4,9 @@
     <div class="q-mr-md tw-flex:1 tw-w-1/3">
       <!-- Tabs -->
       <q-tabs v-model="activeTab" dense align="justify" class="q-my-md">
-        <q-tab no-caps name="file" label="File" class="text-primary"/>
-        <q-tab no-caps name="url" label="URL" class="text-primary"/>
-        <q-tab no-caps name="json" label="Paste Data" class="text-primary"/>
+        <q-tab no-caps name="file" label="File" class="text-primary" />
+        <q-tab no-caps name="url" label="URL" class="text-primary" />
+        <q-tab no-caps name="json" label="Paste Data" class="text-primary" />
       </q-tabs>
 
       <!-- Tab Contents -->
@@ -407,17 +407,33 @@ export default {
     };
 
     const convertDashboardData = () => {
+      let errorMessage = "";
       if (!openaiInstance.value) {
         console.error("openai is not initialized with the API key");
         return;
       }
+      if (activeTab.value === "file" && !file.value) {
+        errorMessage = "Please select a file";
+      } else if (activeTab.value === "url" && !url.value) {
+        errorMessage = "Please enter a URL";
+      } else if (activeTab.value === "json" && !ndjson.value) {
+        errorMessage = "Please enter JSON data";
+      }
 
-      if (activeTab.value === "file") {
-        handleFileUpload(openaiInstance.value);
-      } else if (activeTab.value === "url") {
-        handleURLImport(openaiInstance.value);
-      } else if (activeTab.value === "json") {
-        handleNDJSONPaste(openaiInstance.value);
+      if (errorMessage) {
+        $q.notify({
+          type: "negative",
+          timeout: 2000,
+          message: errorMessage,
+        });
+      } else {
+        if (activeTab.value === "file") {
+          handleFileUpload(openaiInstance.value);
+        } else if (activeTab.value === "url") {
+          handleURLImport(openaiInstance.value);
+        } else if (activeTab.value === "json") {
+          handleNDJSONPaste(openaiInstance.value);
+        }
       }
     };
 

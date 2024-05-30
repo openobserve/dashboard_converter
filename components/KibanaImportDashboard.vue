@@ -351,14 +351,33 @@ export default {
       });
     };
     const convertDashboardData = () => {
-      if (activeTab.value === "file") {
-        handleFileUpload();
-      } else if (activeTab.value === "url") {
-        handleURLImport();
-      } else if (activeTab.value === "json") {
-        handleNDJSONPaste();
+      let errorMessage = "";
+
+      if (activeTab.value === "file" && !file.value) {
+        errorMessage = "Please select a file";
+      } else if (activeTab.value === "url" && !url.value) {
+        errorMessage = "Please enter a URL";
+      } else if (activeTab.value === "json" && !ndjson.value) {
+        errorMessage = "Please enter JSON data";
+      }
+
+      if (errorMessage) {
+        $q.notify({
+          type: "negative",
+          timeout: 2000,
+          message: errorMessage,
+        });
+      } else {
+        if (activeTab.value === "file") {
+          handleFileUpload();
+        } else if (activeTab.value === "url") {
+          handleURLImport();
+        } else if (activeTab.value === "json") {
+          handleNDJSONPaste();
+        }
       }
     };
+
     return {
       file,
       url,
