@@ -189,11 +189,12 @@
   <!-- Loading Overlay -->
   <q-dialog v-model="isLoading" persistent>
     <q-card>
-      <q-card-section>
+      <q-card-section class="tw-flex tw-justify-between tw-items-center">
         <div class="text-h6">Converting...</div>
-        <div class="tw-pt-2 text-subtitle2">
-          Processing your request. Your dashboard file is being converted...
-        </div>
+        <div class="text-caption" style="font-size: 1em">{{ elapsedTime }}</div>
+      </q-card-section>
+      <q-card-section class="tw-pt-2 text-subtitle2">
+        Processing your request. Your dashboard file is being converted...
       </q-card-section>
       <q-card-section
         class="q-pt-none tw-flex tw-justify-center tw-items-center"
@@ -225,6 +226,7 @@ export default {
     const activeTab = ref("file");
     const openApi = ref(null);
     const openaiInstance = ref(null);
+    const elapsedTime = ref("00:00:00");
 
     const $q = useQuasar();
 
@@ -233,6 +235,26 @@ export default {
         openaiInstance.value = openai(newValue);
       }
     });
+
+    const updateTimeElapsed = () => {
+      const startTime = new Date().getTime();
+      setInterval(() => {
+        const currentTime = new Date().getTime();
+        const timeDiff = currentTime - startTime;
+        const hours = Math.floor(
+          (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        )
+          .toString()
+          .padStart(2, "0");
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+          .toString()
+          .padStart(2, "0");
+        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
+          .toString()
+          .padStart(2, "0");
+        elapsedTime.value = `${hours}:${minutes}:${seconds}`;
+      }, 1000);
+    };
 
     const handleFileUpload = (openaiInstance) => {
       if (!file.value) {
@@ -407,6 +429,7 @@ export default {
     };
 
     const convertDashboardData = () => {
+      updateTimeElapsed();
       let errorMessage = "";
       if (!openaiInstance.value) {
         console.error("openai is not initialized with the API key");
@@ -455,6 +478,7 @@ export default {
       downloadO2JSON,
       copyToClipboard,
       openaiInstance,
+      elapsedTime,
     };
   },
 };
