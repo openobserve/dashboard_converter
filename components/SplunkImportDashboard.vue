@@ -195,6 +195,7 @@
       </q-card-section>
       <q-card-section class="tw-pt-2 text-subtitle2">
         Processing your request. Your dashboard file is being converted...
+        <div class="tw-mt-2">{{ progressMessage }}</div>
       </q-card-section>
       <q-card-section
         class="q-pt-none tw-flex tw-justify-center tw-items-center"
@@ -227,6 +228,8 @@ export default {
     const openApi = ref(null);
     const openaiInstance = ref(null);
     const elapsedTime = ref("00:00:00");
+    const progressMessage = ref("");
+    let timerInterval = null;
 
     const $q = useQuasar();
 
@@ -237,8 +240,12 @@ export default {
     });
 
     const updateTimeElapsed = () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+
       const startTime = new Date().getTime();
-      setInterval(() => {
+      timerInterval = setInterval(() => {
         const currentTime = new Date().getTime();
         const timeDiff = currentTime - startTime;
         const hours = Math.floor(
@@ -262,6 +269,8 @@ export default {
       }
 
       clearOldData();
+      updateTimeElapsed();
+      progressMessage.value = "Uploading file and starting conversion...";
 
       isLoading.value = true;
       let reader = new FileReader();
@@ -271,11 +280,13 @@ export default {
         try {
           let o2ConversionRes;
           if (isJSON(fileContent)) {
+            progressMessage.value = "Converting JSON file...";
             o2ConversionRes = await convertSplunkJSONToO2(
               fileContent,
               openaiInstance
             );
           } else {
+            progressMessage.value = "Converting XML file...";
             o2ConversionRes = await convertSplunkXMLToO2(
               fileContent,
               openaiInstance
@@ -293,9 +304,10 @@ export default {
           ).flatMap(([panelName, warnings]) =>
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
+          progressMessage.value = "Conversion completed.";
         } catch (error) {
-          // console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
+          progressMessage.value = "Conversion failed.";
         } finally {
           isLoading.value = false;
         }
@@ -308,6 +320,8 @@ export default {
       if (!url.value) return;
 
       clearOldData();
+      updateTimeElapsed();
+      progressMessage.value = "Fetching URL and starting conversion...";
 
       try {
         isLoading.value = true;
@@ -317,11 +331,13 @@ export default {
         try {
           let o2ConversionRes;
           if (isJSON(fileContent)) {
+            progressMessage.value = "Converting JSON content...";
             o2ConversionRes = await convertSplunkJSONToO2(
               fileContent,
               openaiInstance
             );
           } else {
+            progressMessage.value = "Converting XML content...";
             o2ConversionRes = await convertSplunkXMLToO2(
               fileContent,
               openaiInstance
@@ -339,15 +355,17 @@ export default {
           ).flatMap(([panelName, warnings]) =>
             Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
           );
+          progressMessage.value = "Conversion completed.";
         } catch (error) {
-          // console.log("Error during conversion", error);
           conversionErrors.value = ["Error:" + error.message];
+          progressMessage.value = "Conversion failed.";
         } finally {
           isLoading.value = false;
         }
       } catch (error) {
         console.error("Error during conversion", error);
         conversionErrors.value = ["Error:" + error.message];
+        progressMessage.value = "Conversion failed.";
         isLoading.value = false;
       }
     };
@@ -356,16 +374,20 @@ export default {
       const fileContent = ndjson.value;
 
       clearOldData();
+      updateTimeElapsed();
+      progressMessage.value = "Starting conversion...";
 
       try {
         isLoading.value = true;
         let o2ConversionRes;
         if (isJSON(fileContent)) {
+          progressMessage.value = "Converting JSON content...";
           o2ConversionRes = await convertSplunkJSONToO2(
             fileContent,
             openaiInstance
           );
         } else {
+          progressMessage.value = "Converting XML content...";
           o2ConversionRes = await convertSplunkXMLToO2(
             fileContent,
             openaiInstance
@@ -383,9 +405,11 @@ export default {
         ).flatMap(([panelName, warnings]) =>
           Array.from(warnings).map((warning) => `${panelName}: ${warning}`)
         );
+        progressMessage.value = "Conversion completed.";
       } catch (error) {
         console.error("Error during conversion", error);
         conversionErrors.value = ["Error:" + error.message];
+        progressMessage.value = "Conversion failed.";
       } finally {
         isLoading.value = false;
       }
@@ -479,6 +503,7 @@ export default {
       copyToClipboard,
       openaiInstance,
       elapsedTime,
+      progressMessage,
     };
   },
 };
